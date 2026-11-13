@@ -1,0 +1,14 @@
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Vue.js
+node_modules/
+dist/
+
+# Configurações privadas
+.env
+.env.*
+!.env.example
