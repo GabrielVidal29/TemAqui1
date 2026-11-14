@@ -104,3 +104,62 @@ def test_rn06_rn07_rn08_rn09_isolamento_e_gestao_do_lojista():
             json={"preco": 399.90, "preco_promocional": 299.90},
             headers=headers,
         )
+
+
+def test_lojista_foto_e_exclusao_de_produto():
+    """Lojista envia foto (salva no banco), troca a foto e exclui o produto da própria loja."""
+    import base64
+
+    png = base64.b64encode(
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        b"\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xa7\x35\x81\x84\x00\x00\x00\x00IEND\xaeB`\x82"
+    ).decode()
+    with TestClient(app) as client:
+        token = client.post(
+            "/api/lojista/login", json={"email": "admin@centauro.com.br", "senha": "123456"}
+        ).json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        novo = client.post(
+            "/api/lojista/produtos",
+            json={"nome": "Produto Teste Foto", "categoria": "Esportes", "preco": 50},
+            headers=headers,
+        ).json()
+        pid = novo["id"]
+
+        # Formato inválido e conteúdo que não é imagem são recusados
+        assert client.put(f"/api/lojista/produtos/{pid}/imagem", json={"imagem": "data:text/plain;base64,aGVsbG8gbXVuZG8gdGVzdGUgdGVzdGU="}, headers=headers).status_code == 422
+        assert client.put(f"/api/lojista/produtos/{pid}/imagem", json={"imagem": "data:image/png;base64,aGVsbG8gbXVuZG8gdGVzdGUgdGVzdGU="}, headers=headers).status_code == 422
+
+        # Outra loja não pode trocar a foto (RN08)
+        assert client.put("/api/lojista/produtos/2/imagem", json={"imagem": f"data:image/png;base64,{png}"}, headers=headers).status_code == 403
+
+        enviado = client.put(f"/api/lojista/produtos/{pid}/imagem", json={"imagem": f"data:image/png;base64,{png}"}, headers=headers)
+        assert enviado.status_code == 200
+        url = enviado.json()["imagem_url"]
+        assert url.startswith(f"/api/produtos/{pid}/imagem")
+        foto = client.get(url)
+        assert foto.status_code == 200 and foto.headers["content-type"] == "image/png"
+
+        # Exclusão: outra loja não pode; a própria loja pode, e o produto some da vitrine
+        assert client.delete("/api/lojista/produtos/2", headers=headers).status_code == 403
+        assert client.delete(f"/api/lojista/produtos/{pid}", headers=headers).status_code == 204
+        assert client.get(f"/api/produtos/{pid}").status_code == 404
+        assert client.get(f"/api/produtos/{pid}/imagem").status_code == 404
+        assert all(p["id"] != pid for p in client.get("/api/lojista/produtos", headers=headers).json())
+
+
+def test_rota_acessivel_usa_elevador_e_destaca_wc_pcd():
+    """Rota 100% acessível: troca escada rolante pelo Elevador Central e destaca o WC PCD."""
+    with TestClient(app) as client:
+        comum = client.get("/api/rotas?totem_id=1&loja_id=3").json()
+        assert comum["acessivel"] is False
+        assert any("escadas rolantes" in p.lower() for p in comum["passos"])
+
+        acess = client.get("/api/rotas?totem_id=1&loja_id=3&acessivel=true").json()
+        assert acess["acessivel"] is True
+        texto = " ".join(acess["passos"]).lower() + " " + acess["instrucoes"].lower()
+        assert "escada rolante" not in texto and "escadas rolantes" not in texto
+        assert "elevador central" in texto
+        assert acess["banheiro_acessivel"] and "WC PCD" in acess["banheiro_acessivel"]
+        assert acess["passos"][0].startswith("Você está no Totem Piso 1")

@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session, joinedload
 from app.busca import interpretar, normalizar, pontuar
 from app.database import get_db
-from app.models import Loja, Produto, Promocao, Rota
+from app.models import ImagemProduto, Loja, Produto, Promocao, Rota
 from app.schemas import CategoriaResumoOut, LojaOut, ProdutoDetalheOut, ProdutoVitrineOut, RotaOut
 
 router = APIRouter(prefix="/api/produtos", tags=["Vitrine & Comparação (Público - RN02)"])
@@ -250,6 +250,20 @@ def comparar_ofertas(
 
     produtos.sort(key=lambda x: x.preco_final)
     return produtos
+
+
+@router.get("/{produto_id}/imagem", response_class=Response)
+def obter_foto_produto(produto_id: int, db: Session = Depends(get_db)):
+    """Foto enviada pelo lojista (salva no banco)."""
+    imagem = db.query(ImagemProduto).filter(ImagemProduto.produto_id == produto_id).first()
+    if not imagem:
+        raise HTTPException(status_code=404, detail="Foto não encontrada.")
+    # A URL muda a cada troca de foto (?v=...), então pode ficar em cache por bastante tempo
+    return Response(
+        content=imagem.conteudo,
+        media_type=imagem.mime,
+        headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"},
+    )
 
 
 @router.get("/{produto_id}", response_model=ProdutoDetalheOut)

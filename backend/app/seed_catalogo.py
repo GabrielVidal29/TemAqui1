@@ -13,7 +13,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.auth import hash_password
 from app.config import DEFAULT_MAPPEDIN_URL
-from app.models import Loja, Lojista, Produto, Promocao
+from app.fotos_produtos import FOTOS_PRODUTOS
+from app.models import Loja, Lojista, Produto, ProdutoExcluido, Promocao
 
 IMG = "/assets/products"
 
@@ -260,6 +261,8 @@ def run_seed_catalogo(db: Session) -> None:
 
     # 3. Produtos de cada loja (com horários de atualização variados ao longo da manhã)
     existentes = {(p.nome, p.loja_id) for p in db.query(Produto.nome, Produto.loja_id).all()}
+    # Produtos que o lojista excluiu não voltam a ser criados
+    existentes |= {(e.nome, e.loja_id) for e in db.query(ProdutoExcluido.nome, ProdutoExcluido.loja_id).all()}
     minuto = 0
     for loja_id, produtos in PRODUTOS_POR_LOJA.items():
         for nome, categoria, preco, promo, imagem, descricao, ativo in produtos:
@@ -295,5 +298,12 @@ def run_seed_catalogo(db: Session) -> None:
     for loja_id, nome, email in NOVOS_LOJISTAS:
         if email not in emails:
             db.add(Lojista(nome=nome, email=email, senha_hash=hash_password("123456"), loja_id=loja_id))
+
+    # 5. Fotos reais dos produtos (troca só as ilustrações padrão, nunca uma imagem escolhida pelo lojista)
+    db.flush()
+    for prod in db.query(Produto).all():
+        foto = FOTOS_PRODUTOS.get(prod.nome)
+        if foto and prod.imagem_url.startswith(f"{IMG}/") and prod.imagem_url.endswith(".svg"):
+            prod.imagem_url = f"{IMG}/fotos/{foto}"
 
     db.commit()

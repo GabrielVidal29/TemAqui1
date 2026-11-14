@@ -61,6 +61,11 @@ class RotaOut(BaseModel):
     loja_nome: Optional[str] = None
     loja_pavimento: Optional[str] = None
     loja_localizacao: Optional[str] = None
+    # Acessibilidade: lista textual da rota (fora do mapa) e pontos de apoio
+    acessivel: bool = False
+    passos: List[str] = []
+    elevador: Optional[str] = None
+    banheiro_acessivel: Optional[str] = None
 
 
 class TotemOut(BaseModel):
@@ -113,7 +118,7 @@ class ProdutoCreateRequest(BaseModel):
     categoria: str = Field(..., min_length=2, max_length=80)
     preco: float = Field(..., gt=0)
     preco_promocional: Optional[float] = Field(default=None, gt=0)
-    imagem_url: Optional[str] = "/assets/tenis-sprint.svg"
+    imagem_url: Optional[str] = "/assets/products/fotos/tenis-sprint-run.jpg"
     ativo: bool = True
 
 
@@ -130,6 +135,11 @@ class ProdutoUpdateRequest(BaseModel):
 
 class ProdutoStatusPatchRequest(BaseModel):
     ativo: bool
+
+
+class ProdutoImagemRequest(BaseModel):
+    # Foto em data URL: "data:image/jpeg;base64,..." (até 2 MB depois de decodificada)
+    imagem: str = Field(..., min_length=30, max_length=3_000_000)
 
 
 class CategoriaResumoOut(BaseModel):

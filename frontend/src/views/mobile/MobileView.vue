@@ -6,7 +6,9 @@
         <span class="inherited-icon"><AppIcon name="check" :size="14" :stroke-width="2.6" /></span>
         <div class="inherited-text">
           <strong>Continuando do totem</strong>
-          <span>Pesquisa, comparação e rota foram salvas.</span>
+          <span>
+            Pesquisa, comparação e rota foram salvas.{{ a11yDoTotem ? ' Suas opções de acessibilidade também.' : '' }}
+          </span>
         </div>
         <button type="button" class="icon-btn" aria-label="Fechar aviso" @click="inheritedFromTotem = false">
           <AppIcon name="x" :size="16" />
@@ -69,7 +71,7 @@
               <AppIcon name="arrow-right" :size="14" />
             </span>
           </div>
-          <img src="/assets/products/tenis-sprint.svg" alt="" class="m-promo-img" />
+          <img src="/assets/products/fotos/tenis-sprint-run.jpg" alt="" class="m-promo-img" />
         </button>
 
         <div class="m-section-head">
@@ -382,6 +384,7 @@
           :totem-id="totemOrigemId"
           :origem-nome="`Totem Piso ${totemOrigemId}`"
           :map-height="600"
+          :acessivel="a11y.estado.rotaAcessivel"
           compact
           :back-label="voltarDoPerfil === 'lojas' ? 'Todas as lojas' : 'Voltar'"
           @back="activeTab = voltarDoPerfil"
@@ -459,7 +462,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, formatCurrency, mensagemErroApi } from '@/services/api'
 import { useProductSearch } from '@/composables/useProductSearch'
@@ -474,6 +477,9 @@ import BlackCat from '@/components/sexta13/BlackCat.vue'
 import CouponModal from '@/components/sexta13/CouponModal.vue'
 import SextaAviso from '@/components/sexta13/SextaAviso.vue'
 import { CUPOM_SEXTA13, useSexta13 } from '@/composables/useSexta13'
+import { useAcessibilidade } from '@/composables/useAcessibilidade'
+import { falar, pararFala } from '@/composables/useVoz'
+import { textoDaRota, textoDetalheProduto, textoListaProdutos } from '@/utils/leitura'
 
 const route = useRoute()
 
@@ -491,6 +497,10 @@ const sexta13 = useSexta13()
 const mostrarCupom = ref(false)
 
 const search = useProductSearch({ totemId: totemOrigemId })
+
+// Acessibilidade: preferências do celular (painel no cabeçalho) ou vindas do totem (?a11y=)
+const a11y = useAcessibilidade('mobile')
+const a11yDoTotem = computed(() => !!route.query.a11y)
 
 const lojas = ref([])
 const categorias = ref([])
@@ -593,7 +603,7 @@ async function inicializarMobile(tentativa = 1) {
     }
 
     if (selectedStore.value) {
-      currentRoute.value = await api.obterRota(totemOrigemId.value, selectedStore.value.id)
+      currentRoute.value = await api.obterRota(totemOrigemId.value, selectedStore.value.id, a11y.estado.rotaAcessivel)
     }
   } catch (err) {
     console.error('Erro ao inicializar Mobile:', err)
@@ -632,7 +642,7 @@ async function abrirRotaMobile(prod) {
   selectedProduct.value = prod
   selectedStore.value = lojas.value.find((l) => l.id === prod.loja_id) || prod.loja
   try {
-    currentRoute.value = await api.obterRota(totemOrigemId.value, prod.loja_id)
+    currentRoute.value = await api.obterRota(totemOrigemId.value, prod.loja_id, a11y.estado.rotaAcessivel)
   } catch {
     currentRoute.value = null
   }
@@ -644,7 +654,7 @@ async function onSelectStoreChange(event) {
   const loja = lojas.value.find((l) => l.id === id)
   if (loja) {
     selectedStore.value = loja
-    currentRoute.value = await api.obterRota(totemOrigemId.value, loja.id)
+    currentRoute.value = await api.obterRota(totemOrigemId.value, loja.id, a11y.estado.rotaAcessivel)
   }
 }
 
@@ -653,8 +663,50 @@ watch(activeTab, () => {
   scrollBody.value?.scrollTo({ top: 0 })
 })
 
+// Rota acessível ligada/desligada no painel: refaz a rota
+watch(
+  () => a11y.estado.rotaAcessivel,
+  async (acessivel) => {
+    if (!selectedStore.value) return
+    try {
+      currentRoute.value = await api.obterRota(totemOrigemId.value, selectedStore.value.id, acessivel)
+    } catch {
+      // mantém a rota anterior
+    }
+  }
+)
+
+/* Leitura por voz no celular: detalhe do produto, resultados e rota */
+let timerLeitura = null
+function lerDepois(texto, ms = 400) {
+  if (!a11y.estado.leituraVoz || !texto) return
+  clearTimeout(timerLeitura)
+  timerLeitura = setTimeout(() => falar(texto), ms)
+}
+
+watch(activeTab, (aba) => {
+  if (aba === 'detalhe') lerDepois(textoDetalheProduto(selectedProduct.value).replace(/ Para ir até a loja.*$/, ''))
+  else if (aba === 'mapa' && currentRoute.value) lerDepois(textoDaRota(currentRoute.value))
+})
+
+watch(currentRoute, (rota) => {
+  if (activeTab.value === 'mapa' && rota) lerDepois(textoDaRota(rota))
+})
+
+watch(
+  () => search.resultados.value,
+  (lista) => {
+    if (activeTab.value === 'ofertas') lerDepois(textoListaProdutos(lista), 600)
+  }
+)
+
 onMounted(() => {
   inicializarMobile()
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(timerLeitura)
+  pararFala()
 })
 </script>
 
@@ -1382,5 +1434,10 @@ onMounted(() => {
 .m-nav-item.active .m-nav-icon {
   background: var(--color-gold-soft);
   color: var(--color-gold-deep);
+}
+
+/* B2: fonte A+/A++ no celular (o mapa amplia só controles e instruções) */
+.m-section > :not(.mappedin-wrapper) {
+  zoom: var(--a11y-zoom, 1);
 }
 </style>

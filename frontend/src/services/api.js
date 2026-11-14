@@ -5,6 +5,25 @@ const API_BASE = (
   'http://localhost:8000/api'
 ).replace(/\/$/, '')
 
+// Fotos enviadas pelo lojista são servidas pela API (/api/produtos/{id}/imagem).
+// Como o site e a API podem estar em endereços diferentes, completamos o endereço aqui.
+const API_ORIGEM = API_BASE.replace(/\/api$/, '')
+
+function corrigirImagens(dados) {
+  if (Array.isArray(dados)) {
+    dados.forEach(corrigirImagens)
+  } else if (dados && typeof dados === 'object') {
+    for (const [chave, valor] of Object.entries(dados)) {
+      if (chave === 'imagem_url' && typeof valor === 'string' && valor.startsWith('/api/')) {
+        dados[chave] = `${API_ORIGEM}${valor}`
+      } else if (valor && typeof valor === 'object') {
+        corrigirImagens(valor)
+      }
+    }
+  }
+  return dados
+}
+
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
   const headers = {
@@ -24,7 +43,8 @@ async function request(path, options = {}) {
     erro.status = response.status
     throw erro
   }
-  return response.json()
+  if (response.status === 204) return null
+  return corrigirImagens(await response.json())
 }
 
 export const api = {
@@ -64,16 +84,17 @@ export const api = {
     return request(`/lojas${queryStr}`)
   },
 
-  obterPerfilLoja(lojaId, totemId = 1) {
-    return request(`/lojas/${lojaId}/perfil?totem_id=${totemId}`)
+  // acessivel: rota 100% acessível (só elevador, WC PCD em destaque)
+  obterPerfilLoja(lojaId, totemId = 1, acessivel = false) {
+    return request(`/lojas/${lojaId}/perfil?totem_id=${totemId}${acessivel ? '&acessivel=true' : ''}`)
   },
 
   obterTotem(totemId = 1) {
     return request(`/totens/${totemId}`)
   },
 
-  obterRota(totemId = 1, lojaId = 1) {
-    return request(`/rotas?totem_id=${totemId}&loja_id=${lojaId}`)
+  obterRota(totemId = 1, lojaId = 1, acessivel = false) {
+    return request(`/rotas?totem_id=${totemId}&loja_id=${lojaId}${acessivel ? '&acessivel=true' : ''}`)
   },
 
   listarPontosInteresse(pavimento = '') {
@@ -112,6 +133,22 @@ export const api = {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload)
+    })
+  },
+
+  // imagem: data URL ("data:image/jpeg;base64,...") gerado por prepararFoto()
+  enviarFotoProduto(token, produtoId, imagem) {
+    return request(`/lojista/produtos/${produtoId}/imagem`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ imagem })
+    })
+  },
+
+  excluirProduto(token, produtoId) {
+    return request(`/lojista/produtos/${produtoId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
     })
   },
 

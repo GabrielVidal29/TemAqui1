@@ -187,7 +187,9 @@ const props = defineProps({
   compact: { type: Boolean, default: false },
   mapHeight: { type: Number, default: 540 },
   backLabel: { type: String, default: 'Todas as lojas' },
-  origemNome: { type: String, default: 'Totem Piso 1' }
+  origemNome: { type: String, default: 'Totem Piso 1' },
+  // Rota 100% acessível (só elevador)
+  acessivel: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['back', 'select', 'route'])
@@ -249,7 +251,7 @@ async function carregar() {
   filtroPromo.value = 'todas'
   categoriaLocal.value = ''
   try {
-    perfil.value = await api.obterPerfilLoja(props.lojaId, props.totemId)
+    perfil.value = await api.obterPerfilLoja(props.lojaId, props.totemId, props.acessivel)
   } catch {
     erro.value = 'Não foi possível carregar o perfil da loja.'
   } finally {
@@ -257,7 +259,7 @@ async function carregar() {
   }
 }
 
-watch(() => [props.lojaId, props.totemId], carregar, { immediate: true })
+watch(() => [props.lojaId, props.totemId, props.acessivel], carregar, { immediate: true })
 
 defineExpose({ irParaLocalizacao })
 </script>

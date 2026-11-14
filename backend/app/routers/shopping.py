@@ -81,6 +81,7 @@ def obter_loja(loja_id: int, db: Session = Depends(get_db)):
 def obter_perfil_loja(
     loja_id: int,
     totem_id: int = Query(default=1, description="Totem de origem para a rota (RN05)"),
+    acessivel: bool = Query(default=False, description="Rota acessível (só elevador)"),
     db: Session = Depends(get_db),
 ):
     """
@@ -99,7 +100,7 @@ def obter_perfil_loja(
 
     return LojaPerfilOut(
         loja=_resumir_loja(loja, produtos),
-        rota=montar_rota(db, totem_id, loja_id),
+        rota=montar_rota(db, totem_id, loja_id, acessivel=acessivel),
         destaques=destaques,
         produtos=produtos,
     )
@@ -139,18 +140,74 @@ def listar_pontos_interesse(
 def obter_rota_para_loja(
     totem_id: int = Query(default=1, description="ID do totem de origem fixa (RN05)"),
     loja_id: int = Query(..., description="ID da loja de destino"),
+    acessivel: bool = Query(
+        default=False,
+        description="Rota 100% acessível: só elevador (sem escadas) e banheiro acessível (WC PCD) em destaque",
+    ),
     db: Session = Depends(get_db),
 ):
     """
     RN05: Rotas iniciadas no totem consideram sempre a posição fixa cadastrada para aquele equipamento (:totemId).
     """
-    rota = montar_rota(db, totem_id, loja_id)
+    rota = montar_rota(db, totem_id, loja_id, acessivel=acessivel)
     if rota is None:
         raise HTTPException(status_code=404, detail="Loja de destino não encontrada.")
     return rota
 
 
-def montar_rota(db: Session, totem_id: int, loja_id: int) -> Optional[RotaOut]:
+def _numero_piso(pavimento: str) -> int:
+    digitos = "".join(c for c in (pavimento or "") if c.isdigit())
+    return int(digitos) if digitos else 1
+
+
+def _poi(db: Session, tipo: str, pavimento: str) -> Optional[PontoInteresse]:
+    return (
+        db.query(PontoInteresse)
+        .filter(PontoInteresse.tipo == tipo, PontoInteresse.pavimento == pavimento)
+        .order_by(PontoInteresse.id)
+        .first()
+    )
+
+
+def _passos_da_rota(db: Session, totem: Totem, loja: Loja, acessivel: bool) -> tuple[List[str], Optional[str], Optional[str]]:
+    """
+    Instruções passo a passo (lista em texto, lida em voz alta e por leitores de tela).
+    Devolve (passos, elevador, banheiro_acessivel).
+    """
+    destino = f"{loja.nome}, {loja.localizacao}"
+    passos = [f"Você está no {totem.identificacao}, {totem.posicao_referencia} ({totem.pavimento})."]
+    elevador_txt = None
+
+    if totem.pavimento == loja.pavimento:
+        passos.append(f"Siga pelo corredor principal do {loja.pavimento}" + (", sem degraus." if acessivel else "."))
+    else:
+        verbo = "Suba" if _numero_piso(loja.pavimento) > _numero_piso(totem.pavimento) else "Desça"
+        elevador_origem = _poi(db, "elevador", totem.pavimento)
+        elevador_destino = _poi(db, "elevador", loja.pavimento)
+        local_elevador = elevador_origem.localizacao if elevador_origem else "corredor central"
+        elevador_txt = f"Elevador Central — {local_elevador}"
+        if acessivel:
+            passos.append(f"Siga pelo corredor, sem degraus, até o Elevador Central: {local_elevador}.")
+            passos.append(f"{verbo} de elevador até o {loja.pavimento}.")
+            if elevador_destino:
+                passos.append(f"Ao sair do elevador ({elevador_destino.localizacao}), siga pelo corredor plano, sem degraus.")
+        else:
+            escada = _poi(db, "escada", totem.pavimento) or _poi(db, "escada", loja.pavimento)
+            local_escada = escada.localizacao if escada else "átrio principal"
+            passos.append(f"Vá até as escadas rolantes ({local_escada}) ou o Elevador Central.")
+            passos.append(f"{verbo} até o {loja.pavimento}.")
+    passos.append(f"Destino: {destino}.")
+
+    banheiro_txt = None
+    if acessivel:
+        banheiro = _poi(db, "banheiro", loja.pavimento)
+        if banheiro:
+            banheiro_txt = f"WC PCD (banheiro acessível) do {loja.pavimento} — {banheiro.localizacao}"
+            passos.append(f"Banheiro acessível (WC PCD) mais próximo: {banheiro.localizacao}.")
+    return passos, elevador_txt, banheiro_txt
+
+
+def montar_rota(db: Session, totem_id: int, loja_id: int, acessivel: bool = False) -> Optional[RotaOut]:
     """Rota cadastrada do totem até a loja, ou rota calculada de fallback."""
     totem = db.query(Totem).filter(Totem.id == totem_id).first()
     if not totem:
@@ -167,35 +224,34 @@ def montar_rota(db: Session, totem_id: int, loja_id: int) -> Optional[RotaOut]:
         .first()
     )
 
+    mesmo_piso = totem.pavimento == loja.pavimento
+    passos, elevador, banheiro = _passos_da_rota(db, totem, loja, acessivel)
+
     if rota:
-        return RotaOut(
-            id=rota.id,
-            totem_origem_id=totem.id,
-            loja_destino_id=loja.id,
-            url_rota=rota.url_rota,
-            instrucoes=rota.instrucoes,
-            tempo_estimado_min=rota.tempo_estimado_min,
-            totem_identificacao=totem.identificacao,
-            totem_pavimento=totem.pavimento,
-            totem_referencia=totem.posicao_referencia,
-            loja_nome=loja.nome,
-            loja_pavimento=loja.pavimento,
-            loja_localizacao=loja.localizacao,
+        rota_id, url_rota, instrucoes, tempo = rota.id, rota.url_rota, rota.instrucoes, rota.tempo_estimado_min
+    else:
+        # Rota calculada de fallback quando não houver registro explícito
+        rota_id, url_rota = 0, loja.mappedin_url or DEFAULT_MAPPEDIN_URL
+        tempo = 2 if mesmo_piso else 4
+        instrucoes = (
+            f"Siga pelo corredor principal do {loja.pavimento} até {loja.nome} ({loja.localizacao})."
+            if mesmo_piso
+            else f"Utilize o elevador ou escada rolante até o {loja.pavimento} e siga para {loja.nome} ({loja.localizacao})."
         )
 
-    # Rota calculada de fallback quando não houver registro explícito
-    mesmo_piso = totem.pavimento == loja.pavimento
-    tempo = 2 if mesmo_piso else 4
-    instrucoes = (
-        f"Siga pelo corredor principal do {loja.pavimento} até {loja.nome} ({loja.localizacao})."
-        if mesmo_piso
-        else f"Utilize o elevador ou escada rolante até o {loja.pavimento} e siga para {loja.nome} ({loja.localizacao})."
-    )
+    if acessivel and not mesmo_piso:
+        # Sem escadas: a instrução troca escada rolante pelo Elevador Central
+        instrucoes = (
+            f"Rota acessível, só com elevador: siga até o Elevador Central, vá até o {loja.pavimento} "
+            f"e siga pelo corredor plano até {loja.nome} ({loja.localizacao})."
+        )
+        tempo += 1  # considera a espera pelo elevador
+
     return RotaOut(
-        id=0,
+        id=rota_id,
         totem_origem_id=totem.id,
         loja_destino_id=loja.id,
-        url_rota=loja.mappedin_url or DEFAULT_MAPPEDIN_URL,
+        url_rota=url_rota,
         instrucoes=instrucoes,
         tempo_estimado_min=tempo,
         totem_identificacao=totem.identificacao,
@@ -204,4 +260,8 @@ def montar_rota(db: Session, totem_id: int, loja_id: int) -> Optional[RotaOut]:
         loja_nome=loja.nome,
         loja_pavimento=loja.pavimento,
         loja_localizacao=loja.localizacao,
+        acessivel=acessivel,
+        passos=passos,
+        elevador=elevador if not mesmo_piso else None,
+        banheiro_acessivel=banheiro,
     )

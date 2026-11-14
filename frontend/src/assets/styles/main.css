@@ -422,3 +422,117 @@ span.chip {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ================================================================
+   Acessibilidade — ajustes globais dos modos visuais
+   (variáveis em tokens.css; atributos no <html> via useAcessibilidade.js)
+   ================================================================ */
+
+/* B1 — Alto contraste: texto preto sobre amarelo, estados ativos em amarelo */
+:root[data-contraste='alto'] body {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+:root[data-contraste='alto'] :is(
+  .btn-gold, .rota-num, .best-flag, .m-best-flag, .editor-photo-badge, .discount-preview-icon
+) {
+  background: #FFD600 !important;
+  color: #000000 !important;
+  border-color: #FFD600 !important;
+}
+
+:root[data-contraste='alto'] :is(.chip.active, [aria-pressed='true'], [aria-current='page']:not(.brand-logo)) {
+  background: #FFD600 !important;
+  color: #000000 !important;
+  border-color: #FFD600 !important;
+}
+
+:root[data-contraste='alto'] :is([aria-pressed='true'], [aria-current='page']:not(.brand-logo), .chip.active) .app-icon {
+  color: #000000 !important;
+}
+
+:root[data-contraste='alto'] :is(.btn-cream, .btn-ghost, .chip, .icon-btn, .search-field, input, select) {
+  border: 2px solid #FFFFFF !important;
+}
+
+:root[data-contraste='alto'] .search-field input {
+  border: none !important;
+  outline: none;
+}
+
+:root[data-contraste='alto'] :is(input, select, textarea)::placeholder {
+  color: #D9D9D9;
+}
+
+:root[data-contraste='alto'] img {
+  outline: 1px solid #FFFFFF;
+}
+
+:root[data-contraste='alto'] .totem-stage {
+  background: #000000 !important;
+}
+
+:root[data-contraste='alto'] .totem-shell {
+  border-color: #FFD600 !important;
+}
+
+/* B3 — Foco bem visível e alvos de toque maiores quando um modo visual está ativo */
+:root[data-a11y-visual] :focus-visible {
+  outline: 4px solid var(--color-graphite);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 8px var(--color-gold);
+  border-radius: 8px;
+}
+
+:root[data-contraste='alto'] :focus-visible {
+  outline: 4px solid #FFD600 !important;
+  box-shadow: 0 0 0 8px #000000 !important;
+}
+
+:root[data-a11y-visual] :is(.btn-gold, .btn-cream, .btn-ghost) {
+  min-height: 52px;
+}
+
+:root[data-a11y-visual] .btn-sm {
+  min-height: 46px;
+  padding: 10px 16px;
+}
+
+:root[data-a11y-visual] .chip {
+  min-height: 46px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+:root[data-a11y-visual] .icon-btn {
+  min-width: 46px;
+  min-height: 46px;
+}
+
+:root[data-a11y-visual] :is(.quick-suggestions-row, .cat-row, .found-row, .map-store-selector) {
+  gap: 12px !important;
+}
+
+/* Alto contraste: barra inferior do celular */
+:root[data-contraste='alto'] .mobile-bottom-nav {
+  background: #000000 !important;
+  border-top: 2px solid #FFFFFF !important;
+}
+
+:root[data-contraste='alto'] .m-nav-item {
+  color: #FFFFFF !important;
+}
+
+:root[data-contraste='alto'] .m-nav-item[aria-current='page'] {
+  background: transparent !important;
+  color: #FFD600 !important;
+}
+
+:root[data-contraste='alto'] .m-nav-item[aria-current='page'] .m-nav-icon {
+  background: #FFD600 !important;
+}
+
+:root[data-contraste='alto'] .m-nav-item[aria-current='page'] .m-nav-icon .app-icon {
+  color: #000000 !important;
+}

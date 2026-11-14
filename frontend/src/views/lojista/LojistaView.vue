@@ -143,7 +143,7 @@
             <strong>
               {{
                 mode === 'edit'
-                  ? 'Editar preço'
+                  ? 'Editar produto'
                   : mode === 'create'
                     ? 'Cadastrar novo produto'
                     : 'Meus produtos'
@@ -171,8 +171,8 @@
           <div v-if="publishedBanner" class="published-alert-banner" role="status">
             <span class="published-icon"><AppIcon name="check" :size="16" :stroke-width="2.6" /></span>
             <div>
-              <strong>Alterações publicadas no totem e no site</strong>
-              <p>Seus produtos já podem ser encontrados pelos consumidores. Simulação do protótipo.</p>
+              <strong>{{ bannerTitulo }}</strong>
+              <p>{{ bannerTexto }}</p>
             </div>
             <button
               type="button"
@@ -287,7 +287,7 @@
                     <div class="actions-cell">
                       <button type="button" class="btn-cream btn-sm" @click="abrirEdicao(prod)">
                         <AppIcon name="pencil" :size="14" />
-                        Editar preço
+                        Editar
                       </button>
                       <button
                         type="button"
@@ -296,6 +296,15 @@
                       >
                         <AppIcon :name="prod.ativo ? 'pause' : 'play'" :size="14" />
                         {{ prod.ativo ? 'Pausar' : 'Ativar' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-delete"
+                        :aria-label="`Excluir ${prod.nome}`"
+                        title="Excluir produto"
+                        @click="pedirExclusao(prod)"
+                      >
+                        <AppIcon name="trash" :size="16" />
                       </button>
                     </div>
                   </td>
@@ -323,13 +332,33 @@
           </button>
 
           <div class="page-title-block">
-            <h1>Editar preço</h1>
-            <p>Atualize o preço com transparência para quem está procurando.</p>
+            <h1>Editar produto</h1>
+            <p>Atualize a foto e o preço com transparência para quem está procurando.</p>
           </div>
 
           <div class="editor-card">
             <div class="editor-product-summary">
-              <img :src="editingProduct.imagem_url" alt="" class="editor-thumb" />
+              <div class="editor-photo">
+                <img
+                  :src="fotoEdicao || editingProduct.imagem_url"
+                  :alt="`Foto de ${editingProduct.nome}`"
+                  class="editor-thumb"
+                />
+                <span v-if="fotoEdicao" class="editor-photo-badge">Nova foto</span>
+                <label class="btn-cream btn-sm photo-pick-btn">
+                  <AppIcon name="camera" :size="14" />
+                  {{ fotoEdicao ? 'Escolher outra' : 'Trocar foto' }}
+                  <input
+                    type="file"
+                    class="sr-only"
+                    :accept="TIPOS_FOTO.join(',')"
+                    @change="selecionarFoto($event, 'edicao')"
+                  />
+                </label>
+                <button v-if="fotoEdicao" type="button" class="btn-link-sm" @click="fotoEdicao = ''">
+                  Manter foto atual
+                </button>
+              </div>
               <div>
                 <h2>{{ editingProduct.nome }}</h2>
                 <p class="editor-meta">
@@ -450,25 +479,101 @@
               <span class="form-hint">Tamanhos, cores e condições na loja física.</span>
             </label>
 
+            <div class="form-field">
+              <span id="foto-novo-label">Foto do produto <span class="form-hint">— opcional</span></span>
+              <div
+                class="photo-drop"
+                :class="{ 'is-dragging': arrastandoFoto }"
+                @dragover.prevent="arrastandoFoto = true"
+                @dragleave="arrastandoFoto = false"
+                @drop.prevent="soltarFoto"
+              >
+                <img
+                  :src="fotoNovo || imagemPadraoCategoria"
+                  :alt="fotoNovo ? 'Pré-visualização da foto escolhida' : `Foto padrão da categoria ${novoForm.categoria}`"
+                  class="photo-drop-preview"
+                />
+                <div class="photo-drop-text">
+                  <strong>{{ fotoNovo ? 'Foto escolhida' : 'Sem foto própria' }}</strong>
+                  <span>
+                    {{
+                      fotoNovo
+                        ? 'Ela aparece no totem e no site assim que o produto for publicado.'
+                        : 'Usaremos a foto padrão da categoria. Arraste uma imagem para cá ou escolha um arquivo (JPG, PNG ou WebP).'
+                    }}
+                  </span>
+                  <div class="photo-drop-actions">
+                    <label class="btn-cream btn-sm photo-pick-btn">
+                      <AppIcon name="upload" :size="14" />
+                      {{ fotoNovo ? 'Trocar foto' : 'Escolher foto' }}
+                      <input
+                        type="file"
+                        class="sr-only"
+                        aria-labelledby="foto-novo-label"
+                        :accept="TIPOS_FOTO.join(',')"
+                        @change="selecionarFoto($event, 'novo')"
+                      />
+                    </label>
+                    <button v-if="fotoNovo" type="button" class="btn-link-sm" @click="fotoNovo = ''">
+                      Remover foto
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="editor-actions">
               <button type="button" class="btn-cream" @click="mode = 'list'">
                 Cancelar
               </button>
-              <button type="submit" class="btn-gold">
+              <button type="submit" class="btn-gold" :disabled="salvando">
                 <AppIcon name="check" :size="16" />
-                Publicar no totem e site
+                {{ salvando ? 'Publicando…' : 'Publicar no totem e site' }}
               </button>
             </div>
           </form>
         </section>
       </main>
+
+      <!-- Confirmação de exclusão -->
+      <div
+        v-if="produtoParaExcluir"
+        class="confirm-overlay"
+        @click.self="produtoParaExcluir = null"
+        @keydown.esc="produtoParaExcluir = null"
+      >
+        <div
+          class="confirm-dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-titulo"
+          aria-describedby="confirm-texto"
+        >
+          <span class="confirm-icon"><AppIcon name="trash" :size="22" /></span>
+          <h2 id="confirm-titulo">Excluir produto?</h2>
+          <p id="confirm-texto">
+            <strong>{{ produtoParaExcluir.nome }}</strong> sairá do totem e do site e não poderá ser
+            recuperado. Se quiser apenas tirar da vitrine por um tempo, use “Pausar”.
+          </p>
+          <div class="confirm-actions">
+            <button ref="btnCancelarExclusao" type="button" class="btn-cream" @click="produtoParaExcluir = null">
+              Cancelar
+            </button>
+            <button type="button" class="btn-danger" :disabled="salvando" @click="confirmarExclusao()">
+              <AppIcon name="trash" :size="16" />
+              {{ salvando ? 'Excluindo…' : 'Excluir produto' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { api, formatCurrency } from '@/services/api'
+import { prepararFoto, TIPOS_FOTO } from '@/utils/imagem'
 
 const token = ref(localStorage.getItem('temaqui_lojista_token') || '')
 const loginEmail = ref('admin@centauro.com.br')
@@ -479,6 +584,16 @@ const actionError = ref('')
 const mode = ref('list') // 'list' | 'edit' | 'create'
 const filterOnlyPromos = ref(false)
 const publishedBanner = ref(false)
+const bannerTitulo = ref('Alterações publicadas no totem e no site')
+const bannerTexto = ref('Seus produtos já podem ser encontrados pelos consumidores. Simulação do protótipo.')
+const salvando = ref(false)
+
+// Fotos escolhidas (data URL já reduzido) aguardando envio
+const fotoNovo = ref('')
+const fotoEdicao = ref('')
+const arrastandoFoto = ref(false)
+const produtoParaExcluir = ref(null)
+const btnCancelarExclusao = ref(null)
 
 // Contas demo carregadas da API (uma por loja); estas três aparecem enquanto a API responde
 const contasDemo = ref([
@@ -499,17 +614,18 @@ const CATEGORIAS_PRODUTO = [
   'Brinquedos'
 ]
 
-// Ilustração padrão por categoria para novos produtos
+// Foto padrão por categoria para produtos cadastrados sem foto própria
+const FOTOS = '/assets/products/fotos'
 const IMAGEM_POR_CATEGORIA = {
-  'Calçados': 'tenis-sprint',
-  Moda: 'camiseta-branca',
-  Esportes: 'camiseta-grafite',
-  Perfumaria: 'perfume-essencial',
-  'Acessórios': 'bolsa-caramelo',
-  'Alimentação': 'prato-executivo',
-  Lazer: 'ingresso',
-  Livros: 'livro',
-  Brinquedos: 'blocos'
+  'Calçados': `${FOTOS}/tenis-sprint-run.jpg`,
+  Moda: `${FOTOS}/camiseta-basica-algodao.jpg`,
+  Esportes: `${FOTOS}/mochila-esportiva-25-l.jpg`,
+  Perfumaria: `${FOTOS}/perfume-essencial-100-ml.jpg`,
+  'Acessórios': `${FOTOS}/bolsa-couro-caramelo.jpg`,
+  'Alimentação': `${FOTOS}/almoco-executivo.jpg`,
+  Lazer: `${FOTOS}/ingresso-sala-2d.jpg`,
+  Livros: `${FOTOS}/romance-best-seller.jpg`,
+  Brinquedos: `${FOTOS}/blocos-de-montar-500-pecas.jpg`
 }
 
 const dashboard = ref({
@@ -528,9 +644,12 @@ const novoForm = ref({
   categoria: 'Calçados',
   preco: 349.9,
   preco_promocional: 279.9,
-  descricao: 'Leveza, conforto e amortecimento para acompanhar sua rotina.',
-  imagem_url: '/assets/products/tenis-sprint.svg'
+  descricao: 'Leveza, conforto e amortecimento para acompanhar sua rotina.'
 })
+
+const imagemPadraoCategoria = computed(
+  () => IMAGEM_POR_CATEGORIA[novoForm.value.categoria] || IMAGEM_POR_CATEGORIA['Calçados']
+)
 
 const produtosExibidos = computed(() => {
   const lista = dashboard.value.produtos || []
@@ -604,27 +723,67 @@ function toggleFiltroPromos() {
   filterOnlyPromos.value = !filterOnlyPromos.value
 }
 
+function mostrarBanner(titulo, texto) {
+  bannerTitulo.value = titulo
+  bannerTexto.value = texto
+  publishedBanner.value = true
+}
+
+async function selecionarFoto(evento, destino) {
+  const arquivo = evento.target.files?.[0]
+  evento.target.value = '' // permite escolher o mesmo arquivo de novo
+  await aplicarFoto(arquivo, destino)
+}
+
+async function soltarFoto(evento) {
+  arrastandoFoto.value = false
+  await aplicarFoto(evento.dataTransfer?.files?.[0], 'novo')
+}
+
+async function aplicarFoto(arquivo, destino) {
+  if (!arquivo) return
+  actionError.value = ''
+  try {
+    const foto = await prepararFoto(arquivo)
+    if (destino === 'novo') fotoNovo.value = foto
+    else fotoEdicao.value = foto
+  } catch (err) {
+    actionError.value = err.message
+  }
+}
+
 function abrirEdicao(prod) {
   editingProduct.value = prod
+  fotoEdicao.value = ''
   formPrecoOriginal.value = prod.preco_original
   formPrecoPromocional.value = prod.preco_promocional || prod.preco_final
   mode.value = 'edit'
 }
 
 async function salvarEdicaoPreco() {
-  if (!editingProduct.value) return
+  if (!editingProduct.value || salvando.value) return
   actionError.value = ''
+  salvando.value = true
   try {
     await api.atualizarProduto(token.value, editingProduct.value.id, {
       preco: Number(formPrecoOriginal.value),
       preco_promocional: formPrecoPromocional.value ? Number(formPrecoPromocional.value) : null,
       remover_promocao: !formPrecoPromocional.value
     })
+    if (fotoEdicao.value) {
+      await api.enviarFotoProduto(token.value, editingProduct.value.id, fotoEdicao.value)
+      fotoEdicao.value = ''
+    }
     await carregarDashboard()
     mode.value = 'list'
-    publishedBanner.value = true
+    mostrarBanner(
+      'Alterações publicadas no totem e no site',
+      'Seus produtos já podem ser encontrados pelos consumidores. Simulação do protótipo.'
+    )
   } catch (err) {
     actionError.value = err.message || 'Não foi possível salvar as alterações.'
+  } finally {
+    salvando.value = false
   }
 }
 
@@ -634,26 +793,64 @@ function abrirModalCadastro() {
     categoria: 'Calçados',
     preco: 349.9,
     preco_promocional: 279.9,
-    descricao: 'Leveza, conforto e amortecimento para acompanhar sua rotina.',
-    imagem_url: '/assets/products/tenis-sprint.svg'
+    descricao: 'Leveza, conforto e amortecimento para acompanhar sua rotina.'
   }
+  fotoNovo.value = ''
   mode.value = 'create'
 }
 
 async function salvarNovoProduto() {
+  if (salvando.value) return
   actionError.value = ''
+  salvando.value = true
   try {
-    const imagem = IMAGEM_POR_CATEGORIA[novoForm.value.categoria] || 'tenis-sprint'
-    await api.cadastrarProduto(token.value, {
+    const criado = await api.cadastrarProduto(token.value, {
       ...novoForm.value,
-      imagem_url: `/assets/products/${imagem}.svg`,
+      imagem_url: imagemPadraoCategoria.value,
       ativo: true
     })
+    if (fotoNovo.value) {
+      try {
+        await api.enviarFotoProduto(token.value, criado.id, fotoNovo.value)
+      } catch (err) {
+        actionError.value = `Produto cadastrado, mas a foto não foi enviada: ${err.message}. Use “Editar” para tentar de novo.`
+      }
+      fotoNovo.value = ''
+    }
     await carregarDashboard()
     mode.value = 'list'
-    publishedBanner.value = true
+    mostrarBanner(
+      'Produto publicado no totem e no site',
+      `${criado.nome} já pode ser encontrado pelos consumidores. Simulação do protótipo.`
+    )
   } catch (err) {
     actionError.value = err.message || 'Não foi possível cadastrar o produto.'
+  } finally {
+    salvando.value = false
+  }
+}
+
+async function pedirExclusao(prod) {
+  actionError.value = ''
+  produtoParaExcluir.value = prod
+  await nextTick()
+  btnCancelarExclusao.value?.focus()
+}
+
+async function confirmarExclusao() {
+  const prod = produtoParaExcluir.value
+  if (!prod || salvando.value) return
+  salvando.value = true
+  try {
+    await api.excluirProduto(token.value, prod.id)
+    produtoParaExcluir.value = null
+    await carregarDashboard()
+    mostrarBanner('Produto excluído', `${prod.nome} foi removido do totem e do site.`)
+  } catch (err) {
+    produtoParaExcluir.value = null
+    actionError.value = err.message || 'Não foi possível excluir o produto.'
+  } finally {
+    salvando.value = false
   }
 }
 
@@ -1316,6 +1513,7 @@ onMounted(async () => {
 .actions-cell {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 6px;
 }
 
@@ -1477,5 +1675,208 @@ onMounted(async () => {
   gap: 10px;
   padding-top: 20px;
   border-top: 1px solid var(--color-border);
+}
+
+/* Foto do produto (edição e cadastro) */
+.editor-photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.editor-photo .editor-thumb {
+  width: 160px;
+  height: 120px;
+}
+
+.editor-photo-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-gold);
+  color: var(--color-graphite);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.photo-pick-btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+/* O input de arquivo fica escondido dentro do botão; o foco aparece no botão */
+.photo-pick-btn:focus-within {
+  outline: 3px solid var(--color-graphite);
+  outline-offset: 2px;
+}
+
+.btn-link-sm {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-graphite-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.photo-drop {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.photo-drop.is-dragging {
+  border-color: var(--color-gold);
+  background: var(--color-gold-soft);
+}
+
+.photo-drop-preview {
+  width: 148px;
+  height: 111px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.photo-drop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-graphite-muted);
+  line-height: 1.45;
+}
+
+.photo-drop-text strong {
+  color: var(--color-graphite);
+  font-size: 14px;
+}
+
+.photo-drop-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* Excluir produto */
+.btn-delete {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #C62828;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.btn-delete:hover {
+  background: var(--color-danger-bg);
+  border-color: #F1C4C4;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #B71C1C;
+  background: #C62828;
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #B71C1C;
+}
+
+.btn-danger:disabled,
+.btn-gold:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(41, 41, 41, 0.45);
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-lg);
+}
+
+.confirm-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-danger-bg);
+  color: #C62828;
+}
+
+.confirm-dialog h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.confirm-dialog p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-graphite-muted);
+}
+
+.confirm-dialog p strong {
+  color: var(--color-graphite);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 </style>
