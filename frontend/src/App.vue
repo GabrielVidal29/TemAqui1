@@ -23,8 +23,10 @@
     </nav>
 
     <router-view />
+    <SextaToast />
   </div>
 </template>
 
 <script setup>
+import SextaToast from '@/components/sexta13/SextaToast.vue'
 </script>

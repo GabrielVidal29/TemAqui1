@@ -6,7 +6,7 @@
         type="button"
         class="brand-logo totem-brand"
         aria-label="TemAqui, voltar à tela inicial"
-        @click="screen = 'welcome'"
+        @click="onLogoClick"
       >
         <span class="brand-pin"></span>
         <span>TemAqui</span>
@@ -96,6 +96,7 @@
 
       <!-- 2. INÍCIO / VITRINE -->
       <main v-if="screen === 'vitrine'" class="totem-content">
+        <SextaAviso />
         <form class="search-field totem-search" role="search" @submit.prevent="buscarTexto(termoInicio)">
           <AppIcon name="search" :size="20" />
           <input
@@ -152,7 +153,9 @@
               <AppIcon name="arrow-right" :size="16" />
             </button>
           </div>
-          <div class="products-grid-3">
+          <div class="products-grid-3 cat-stage">
+            <!-- Easter egg sexta-feira 13: o gato anda entre as duas linhas de cards -->
+            <BlackCat v-if="sexta13.ativo.value" top="50%" @pegar="mostrarCupom = true" />
             <ProductCard
               v-for="prod in destaques"
               :key="prod.id"
@@ -185,6 +188,7 @@
 
       <!-- 3. RESULTADOS DA BUSCA (filtragem real) -->
       <main v-else-if="screen === 'busca'" class="totem-content">
+        <SextaAviso />
         <div class="search-field totem-search">
           <AppIcon name="search" :size="20" />
           <input
@@ -249,7 +253,13 @@
 
         <p v-if="search.erro.value" class="error-line" role="alert">{{ search.erro.value }}</p>
 
-        <div v-if="search.resultados.value.length" class="products-grid-3" :class="{ loading: search.carregando.value }">
+        <div v-if="search.resultados.value.length" class="products-grid-3 cat-stage" :class="{ loading: search.carregando.value }">
+          <BlackCat
+            v-if="sexta13.ativo.value && search.resultados.value.length > 3"
+            top="calc(50% - 10px)"
+            :duracao="30"
+            @pegar="mostrarCupom = true"
+          />
           <ProductCard
             v-for="prod in search.resultados.value"
             :key="prod.id"
@@ -611,6 +621,13 @@
         </ol>
       </main>
 
+      <CouponModal
+        v-if="mostrarCupom"
+        modo="totem"
+        :totem-id="totemId"
+        @fechar="mostrarCupom = false"
+      />
+
       <footer class="totem-footer">
         <span>Palmas, TO · Mapa e ofertas demonstrativas</span>
         <button type="button" class="chip" @click="screen = 'ajuda'">
@@ -636,6 +653,10 @@ import QrCodeModal from '@/components/common/QrCodeModal.vue'
 import SearchFilters from '@/components/common/SearchFilters.vue'
 import StoreCard from '@/components/common/StoreCard.vue'
 import StoreProfile from '@/components/common/StoreProfile.vue'
+import BlackCat from '@/components/sexta13/BlackCat.vue'
+import CouponModal from '@/components/sexta13/CouponModal.vue'
+import SextaAviso from '@/components/sexta13/SextaAviso.vue'
+import { useSexta13 } from '@/composables/useSexta13'
 
 const route = useRoute()
 const totemId = computed(() => Number(route.params.totemId || 1))
@@ -653,6 +674,15 @@ const totemInfo = ref({
 })
 
 const search = useProductSearch({ totemId })
+
+// Easter egg sexta-feira 13
+const sexta13 = useSexta13()
+const mostrarCupom = ref(false)
+
+function onLogoClick() {
+  // O 1º toque volta ao início; 13 toques seguidos ligam/desligam o modo sexta-feira 13
+  if (sexta13.registrarToqueLogo() === 1) screen.value = 'welcome'
+}
 
 const lojas = ref([])
 const categorias = ref([])
@@ -1223,6 +1253,10 @@ onMounted(() => {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   transition: opacity 0.15s var(--ease);
+}
+
+.cat-stage {
+  position: relative;
 }
 
 .products-grid-3.loading {

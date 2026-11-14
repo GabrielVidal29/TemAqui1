@@ -22,6 +22,17 @@
 
       <!-- ABA: INÍCIO -->
       <section v-if="activeTab === 'inicio'" class="m-section">
+        <SextaAviso compact />
+
+        <!-- Cupom de sexta-feira 13 guardado no celular -->
+        <button v-if="sexta13.temCupom.value" type="button" class="m-coupon-card" @click="mostrarCupom = true">
+          <span class="m-coupon-icon" aria-hidden="true"><AppIcon name="ticket" :size="20" /></span>
+          <span class="m-coupon-text">
+            <strong>Cupom {{ CUPOM_SEXTA13.codigo }}</strong>
+            <span>{{ CUPOM_SEXTA13.titulo }} · toque para mostrar no caixa</span>
+          </span>
+          <AppIcon name="chevron-right" :size="16" />
+        </button>
         <div class="m-hero">
           <span class="eyebrow m-hero-eyebrow">Olá! Bem-vindo ao TemAqui</span>
           <h1 class="m-hero-title">Seu próximo achado está aqui.</h1>
@@ -99,7 +110,9 @@
           <h2 class="m-section-subtitle">Maiores descontos</h2>
           <button type="button" class="link-action" @click="abrirOfertas()">Ver todas</button>
         </div>
-        <div class="m-list-vertical">
+        <div class="m-list-vertical cat-stage">
+          <!-- Easter egg sexta-feira 13: o gato passeia entre os cards -->
+          <BlackCat v-if="sexta13.ativo.value" top="calc(33% + 4px)" :duracao="20" @pegar="mostrarCupom = true" />
           <ProductCard
             v-for="prod in destaques"
             :key="prod.id"
@@ -113,6 +126,7 @@
 
       <!-- ABA: BUSCA / OFERTAS -->
       <section v-else-if="activeTab === 'ofertas'" class="m-section">
+        <SextaAviso compact />
         <div class="search-field">
           <AppIcon name="search" :size="18" />
           <input
@@ -180,7 +194,13 @@
           </div>
         </div>
 
-        <div v-if="search.resultados.value.length" class="m-list-vertical" :class="{ loading: search.carregando.value }">
+        <div v-if="search.resultados.value.length" class="m-list-vertical cat-stage" :class="{ loading: search.carregando.value }">
+          <BlackCat
+            v-if="sexta13.ativo.value && search.resultados.value.length > 2"
+            top="calc(33% + 4px)"
+            :duracao="20"
+            @pegar="mostrarCupom = true"
+          />
           <ProductCard
             v-for="prod in search.resultados.value"
             :key="prod.id"
@@ -410,6 +430,14 @@
       </section>
     </div>
 
+    <CouponModal
+      v-if="mostrarCupom"
+      modo="mobile"
+      :salvo="sexta13.temCupom.value"
+      @salvar="sexta13.salvarCupom()"
+      @fechar="mostrarCupom = false"
+    />
+
     <!-- Barra de navegação inferior -->
     <nav class="mobile-bottom-nav" aria-label="Navegação principal">
       <button
@@ -442,6 +470,10 @@ import ProductCard from '@/components/common/ProductCard.vue'
 import SearchFilters from '@/components/common/SearchFilters.vue'
 import StoreCard from '@/components/common/StoreCard.vue'
 import StoreProfile from '@/components/common/StoreProfile.vue'
+import BlackCat from '@/components/sexta13/BlackCat.vue'
+import CouponModal from '@/components/sexta13/CouponModal.vue'
+import SextaAviso from '@/components/sexta13/SextaAviso.vue'
+import { CUPOM_SEXTA13, useSexta13 } from '@/composables/useSexta13'
 
 const route = useRoute()
 
@@ -453,6 +485,10 @@ const termoInicio = ref('')
 const mostrarFiltros = ref(false)
 const scrollBody = ref(null)
 const erroApi = ref('')
+
+// Easter egg sexta-feira 13
+const sexta13 = useSexta13()
+const mostrarCupom = ref(false)
 
 const search = useProductSearch({ totemId: totemOrigemId })
 
@@ -523,8 +559,14 @@ async function inicializarMobile(tentativa = 1) {
     selectedProduct.value = dData[0] || null
     selectedStore.value = selectedProduct.value?.loja || lData[0] || null
 
+    // Cupom de sexta-feira 13 levado do totem pelo QR Code
+    if (route.query.cupom === CUPOM_SEXTA13.codigo) {
+      sexta13.salvarCupom()
+      mostrarCupom.value = true
+    }
+
     // Continuidade vinda do QR Code do Totem (RN10)
-    if (route.query.fromTotem) {
+    if (route.query.fromTotem && !route.query.cupom) {
       inheritedFromTotem.value = true
       if (route.query.produtoId) {
         const found = dData.find((p) => p.id === Number(route.query.produtoId))
@@ -689,6 +731,50 @@ onMounted(() => {
 .api-error-banner span {
   flex: 1;
   min-width: 180px;
+}
+
+.cat-stage {
+  position: relative;
+}
+
+.m-coupon-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px dashed rgba(201, 163, 74, 0.7);
+  border-radius: var(--radius-md);
+  background: linear-gradient(120deg, #1A1A1A 0%, #2E2A25 100%);
+  color: #E8E2D3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.m-coupon-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(201, 163, 74, 0.16);
+  color: var(--color-gold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.m-coupon-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: #CFC8B8;
+}
+
+.m-coupon-text strong {
+  font-size: 15px;
+  color: var(--color-gold);
+  letter-spacing: 0.02em;
 }
 
 /* Seções */

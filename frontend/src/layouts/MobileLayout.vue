@@ -13,7 +13,12 @@
 
       <!-- Header TemAqui + Capim Dourado -->
       <header class="mobile-header">
-        <router-link to="/" class="brand-logo" aria-label="TemAqui, página inicial">
+        <router-link
+          to="/"
+          class="brand-logo"
+          aria-label="TemAqui, página inicial"
+          @click="sexta13.registrarToqueLogo()"
+        >
           <span class="brand-pin"></span>
           <span>TemAqui</span>
         </router-link>
@@ -32,6 +37,10 @@
 </template>
 
 <script setup>
+import { useSexta13 } from '@/composables/useSexta13'
+
+// Easter egg: 13 toques seguidos no logo ligam/desligam o modo sexta-feira 13
+const sexta13 = useSexta13()
 </script>
 
 <style scoped>
