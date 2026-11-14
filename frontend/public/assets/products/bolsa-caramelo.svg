@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bgb" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F3EFE8"/>
+      <stop offset="100%" stop-color="#E4DDD0"/>
+    </linearGradient>
+    <linearGradient id="leather" x1="200" y1="150" x2="400" y2="335" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#B5632A"/>
+      <stop offset="100%" stop-color="#7E3D13"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bgb)"/>
+  <ellipse cx="305" cy="340" rx="135" ry="18" fill="#292929" fill-opacity="0.18"/>
+  <!-- Alça superior -->
+  <path d="M250 172 C250 105, 350 105, 350 172" stroke="#6E330E" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <!-- Corpo da bolsa estruturada caramelo -->
+  <path d="M206 168 L394 168 L414 328 C415 336, 408 342, 398 342 L202 342 C192 342, 185 336, 186 328 Z" fill="url(#leather)" stroke="#5E2B0C" stroke-width="3"/>
+  <!-- Aba frontal -->
+  <path d="M206 168 L394 168 L382 246 C380 256, 370 262, 358 262 L242 262 C230 262, 220 256, 218 246 Z" fill="#9E511F" stroke="#5E2B0C" stroke-width="2.5"/>
+  <!-- Fecho dourado -->
+  <rect x="286" y="242" width="28" height="36" rx="6" fill="#C9A34A" stroke="#5E2B0C" stroke-width="2"/>
+  <circle cx="300" cy="260" r="5" fill="#292929"/>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EDE7DA"/>
+      <stop offset="100%" stop-color="#DDD4C3"/>
+    </linearGradient>
+    <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#292929" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#292929" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bg)"/>
+  <ellipse cx="305" cy="312" rx="195" ry="22" fill="url(#shadow)"/>
+  <!-- Sola amortecida -->
+  <path d="M110 278 C135 268, 445 264, 492 278 C504 282, 502 304, 480 307 L128 307 C106 306, 98 285, 110 278 Z" fill="#F8F5EE" stroke="#D3C9B6" stroke-width="3"/>
+  <path d="M122 306 L482 306" stroke="#8C8373" stroke-width="5" stroke-linecap="round"/>
+  <!-- Cabedal esportivo creme e verde oliva -->
+  <path d="M126 276 C125 225, 152 178, 195 178 C218 178, 240 202, 272 200 C306 198, 332 162, 360 162 C398 162, 448 216, 486 248 C498 258, 495 276, 480 278 Z" fill="#EFECE4" stroke="#CBC2B0" stroke-width="2.5"/>
+  <!-- Recortes camurça oliva -->
+  <path d="M126 276 C128 238, 165 215, 208 232 L198 276 Z" fill="#8C917E"/>
+  <path d="M358 214 C405 218, 452 238, 484 260 L480 276 L345 276 Z" fill="#A59E8C" opacity="0.55"/>
+  <!-- Logo N estilizado -->
+  <path d="M266 258 L282 208 L302 208 L314 242 L326 208 L342 208 L326 258 L308 258 L295 224 L284 258 Z" fill="#6E7562" stroke="#F8F5EE" stroke-width="2"/>
+  <!-- Cadarços -->
+  <path d="M336 180 L362 192 M352 194 L378 206 M368 208 L394 220" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+</svg>
