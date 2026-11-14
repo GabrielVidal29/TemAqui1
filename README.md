@@ -13,7 +13,7 @@ A solução conecta a jornada física do consumidor em três pontos de contato s
 
 ## 🎥 Vídeo de Apresentação (Pitch — 90s)
 
-[![Assista ao vídeo de apresentação do TemAqui](https://img.youtube.com/vi/XRJW_cn96EI/hqdefault.jpg)](https://youtu.be/XRJW_cn96EI)
+[![YouTube](https://img.shields.io/badge/-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/XRJW_cn96EI)
 
 > Clique na imagem acima para assistir à demonstração completa do **TemAqui** no YouTube.
 ## 🌐 Links de Demonstração Online (Deploy no Render)
