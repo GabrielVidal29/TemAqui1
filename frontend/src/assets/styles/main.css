@@ -469,6 +469,11 @@ span.chip {
   outline: 1px solid #FFFFFF;
 }
 
+/* Logos com fundo transparente não ganham contorno */
+:root[data-contraste='alto'] .hero-capim {
+  outline: none;
+}
+
 :root[data-contraste='alto'] .totem-stage {
   background: #000000 !important;
 }

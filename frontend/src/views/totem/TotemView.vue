@@ -23,12 +23,22 @@
     <!-- 1. TELA DE DESCANSO / BOAS-VINDAS -->
     <main v-if="screen === 'welcome'" class="welcome-screen" @click="iniciarSessao">
       <div class="hero-image-card">
-        <img
-          src="/assets/capim-dourado-hero.webp"
-          alt="Fachada do Capim Dourado Shopping, em Palmas (TO)"
-          class="hero-photo"
-        />
+        <!-- Imagem ilustrativa de corredor de shopping (decorativa) -->
+        <img src="/assets/abertura-totem.jpg" alt="" class="hero-photo" />
         <div class="hero-overlay" aria-hidden="true"></div>
+        <div class="hero-lockup">
+          <span class="hero-temaqui">
+            <span class="brand-pin hero-pin" aria-hidden="true"></span>
+            TemAqui
+          </span>
+          <span class="hero-no">no</span>
+          <img
+            src="/assets/logos/capim-dourado-branco.png"
+            alt="Capim Dourado Shopping"
+            class="hero-capim"
+          />
+          <p class="hero-slogan" aria-hidden="true">O que você procura, <em>tem aqui.</em></p>
+        </div>
         <span class="hero-badge">
           <AppIcon name="sparkles" :size="14" />
           Experimente novas descobertas
@@ -1290,10 +1300,117 @@ onBeforeUnmount(() => {
   object-fit: cover;
 }
 
+/* Sombra escura à esquerda: dá contraste às logos brancas e deixa o corredor à mostra */
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(31, 31, 31, 0.45) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(28, 24, 18, 0.86) 0%,
+    rgba(28, 24, 18, 0.62) 42%,
+    rgba(28, 24, 18, 0) 72%
+  );
+}
+
+/* Assinatura "TemAqui no Capim Dourado Shopping" */
+.hero-lockup {
+  position: absolute;
+  left: 36px;
+  top: 74px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hero-temaqui {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #FFFFFF;
+}
+
+.hero-pin {
+  width: 44px;
+  height: 44px;
+}
+
+.hero-pin::after {
+  width: 16px;
+  height: 16px;
+  background: #FFFFFF;
+}
+
+.hero-no {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #E9D7AE;
+}
+
+.hero-no::after {
+  content: '';
+  width: 60px;
+  height: 1px;
+  background: rgba(233, 215, 174, 0.6);
+}
+
+.hero-capim {
+  height: 82px;
+  width: auto;
+  align-self: flex-start;
+}
+
+.hero-slogan {
+  max-width: 340px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+.hero-slogan em {
+  font-style: normal;
+  color: #C9A34A;
+}
+
+/* Totem real (1080 x 1920): imagem mais alta e assinatura maior */
+@media (min-width: 1080px) and (min-height: 1600px) {
+  .hero-image-card {
+    height: 640px;
+  }
+
+  .hero-lockup {
+    left: 64px;
+    top: 50%;
+    transform: translateY(-56%);
+  }
+
+  .hero-temaqui {
+    font-size: 64px;
+  }
+
+  .hero-pin {
+    width: 56px;
+    height: 56px;
+  }
+
+  .hero-capim {
+    height: 116px;
+  }
+
+  .hero-slogan {
+    font-size: 24px;
+    max-width: 420px;
+  }
 }
 
 .hero-badge {
