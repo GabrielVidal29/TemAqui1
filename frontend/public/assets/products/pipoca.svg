@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFECE4"/>
+      <stop offset="100%" stop-color="#DFD8C8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bg)"/>
+  <ellipse cx="300" cy="350" rx="150" ry="18" fill="#000" opacity="0.06"/>
+  <g fill="#FFF4D6" stroke="#E8D5B7" stroke-width="2">
+    <circle cx="240" cy="120" r="26"/><circle cx="280" cy="100" r="28"/><circle cx="324" cy="104" r="28"/><circle cx="362" cy="124" r="26"/><circle cx="300" cy="130" r="26"/><circle cx="262" cy="140" r="22"/><circle cx="342" cy="146" r="22"/></g>
+  <path d="M220 140 H380 L356 340 H244 Z" fill="#FFFFFF"/>
+  <g fill="#D9534F"><path d="M236 140 H262 L258 340 H244 Z"/><path d="M288 140 H312 L310 340 H290 Z"/><path d="M338 140 H364 L356 340 H342 Z"/></g>
+  <rect x="262" y="210" width="76" height="40" rx="8" fill="#292929"/>
+  <text x="300" y="237" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#C9A34A">POP</text>
+</svg>

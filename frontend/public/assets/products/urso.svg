@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFECE4"/>
+      <stop offset="100%" stop-color="#DFD8C8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bg)"/>
+  <ellipse cx="300" cy="350" rx="150" ry="18" fill="#000" opacity="0.06"/>
+  <circle cx="240" cy="132" r="30" fill="#A87850"/><circle cx="360" cy="132" r="30" fill="#A87850"/>
+  <circle cx="240" cy="132" r="14" fill="#D9B48C"/><circle cx="360" cy="132" r="14" fill="#D9B48C"/>
+  <ellipse cx="300" cy="280" rx="90" ry="70" fill="#A87850"/>
+  <circle cx="300" cy="180" r="72" fill="#B98A5E"/>
+  <ellipse cx="300" cy="205" rx="32" ry="24" fill="#E3C7A4"/>
+  <circle cx="276" cy="168" r="8" fill="#292929"/><circle cx="324" cy="168" r="8" fill="#292929"/>
+  <ellipse cx="300" cy="196" rx="10" ry="7" fill="#292929"/>
+  <path d="M260 250 Q300 270 340 250" stroke="#C9A34A" stroke-width="10" fill="none" stroke-linecap="round"/>
+</svg>

@@ -2,78 +2,107 @@
   <div class="mappedin-wrapper">
     <!-- Controles de Pavimento e Origem Fixa (RN04, RN05) -->
     <div class="map-controls-row">
-      <div class="floor-pills">
+      <div class="floor-pills" role="group" aria-label="Pavimento">
         <button
+          v-for="piso in ['1º Piso', '2º Piso']"
+          :key="piso"
           type="button"
           class="floor-btn"
-          :class="{ active: selectedFloor === '1º Piso' }"
-          @click="selectedFloor = '1º Piso'"
+          :class="{ active: selectedFloor === piso }"
+          :aria-pressed="selectedFloor === piso"
+          @click="selectedFloor = piso"
         >
-          1º Piso
-        </button>
-        <button
-          type="button"
-          class="floor-btn"
-          :class="{ active: selectedFloor === '2º Piso' }"
-          @click="selectedFloor = '2º Piso'"
-        >
-          2º Piso
+          <AppIcon name="layers" :size="15" />
+          {{ piso }}
         </button>
       </div>
       <div class="origin-tag">
-        Origem fixa • {{ totemLabel }}
+        <AppIcon name="circle-dot" :size="14" />
+        Origem: {{ totemLabel }}
       </div>
     </div>
 
     <!-- Container do Mapa 3D Interativo Mappedin (RF08-RF12) -->
-    <div class="mappedin-iframe-card">
+    <div class="mappedin-iframe-card" :class="{ expanded }">
+      <div v-if="allowFullscreen" class="map-toolbar">
+        <span class="map-hint">
+          <AppIcon name="search" :size="13" />
+          Use a busca do mapa para encontrar lojas e serviços
+        </span>
+        <button
+          type="button"
+          class="map-expand-btn"
+          :aria-label="expanded ? 'Fechar mapa em tela cheia' : 'Abrir mapa em tela cheia'"
+          @click="expanded = !expanded"
+        >
+          <AppIcon :name="expanded ? 'x' : 'maximize'" :size="16" />
+          {{ expanded ? 'Fechar' : 'Tela cheia' }}
+        </button>
+      </div>
+      <!--
+        Importante: abaixo de ~500px de altura o embed do Mappedin entra em modo compacto
+        e esconde a barra de busca. Por isso a altura mínima no celular é maior.
+      -->
       <iframe
-        href="https://www.mappedin.com/"
-        title="Mappedin Map"
+        title="Mapa interativo do Capim Dourado Shopping com a rota até a loja"
         name="Mappedin Map"
         allow="clipboard-write 'self' https://app.mappedin.com; web-share 'self' https://app.mappedin.com"
         scrolling="no"
         width="100%"
-        :height="height"
+        :height="expanded ? '100%' : height"
         frameborder="0"
-        style="border:0"
+        class="map-iframe"
         :src="computedSrc"
       ></iframe>
 
-      <!-- Barra de POIs Rápidos sobreposta no rodapé do mapa (conforme Prints 02 e 03) -->
+      <!-- Legenda de POIs no rodapé do mapa -->
       <div class="poi-overlay-bar">
-        <span class="poi-origin">● Você está aqui ({{ totemLabel }})</span>
-        <span class="poi-chip">↗ Rota</span>
-        <span class="poi-chip">⇅ Elevador / escada</span>
-        <span class="poi-chip">WC</span>
+        <span class="poi-origin">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          Você está aqui · {{ totemLabel }}
+        </span>
+        <div class="poi-legend">
+          <span class="poi-chip"><AppIcon name="route" :size="13" /> Rota</span>
+          <span class="poi-chip"><AppIcon name="arrow-up-down" :size="13" /> Elevador / escada</span>
+          <span class="poi-chip"><AppIcon name="info" :size="13" /> Banheiros</span>
+        </div>
       </div>
     </div>
 
-    <!-- Card de Instruções de Rota Passo a Passo (quando houver loja selecionada) -->
+    <!-- Card de Instruções de Rota (quando houver loja selecionada) -->
     <div v-if="lojaDestino || rota" class="route-summary-card">
       <div class="route-summary-header">
-        <div>
+        <span class="route-icon">
+          <AppIcon name="store" :size="20" />
+        </span>
+        <div class="route-heading">
+          <span class="eyebrow">Destino</span>
           <h4 class="route-store-title">
-            {{ rota?.loja_nome || lojaDestino?.nome || 'Centauro' }} •
-            {{ rota?.loja_pavimento || lojaDestino?.pavimento || selectedFloor }}
+            {{ rota?.loja_nome || lojaDestino?.nome || 'Centauro' }}
           </h4>
           <p class="route-sub">
-            <span v-if="produtoNome">{{ produtoNome }} • </span>
-            <strong>{{ rota?.tempo_estimado_min || 2 }} min a pé</strong>
-            <span v-if="lojaDestino?.localizacao"> • {{ lojaDestino.localizacao }}</span>
+            {{ rota?.loja_pavimento || lojaDestino?.pavimento || selectedFloor }}
+            <span v-if="lojaDestino?.localizacao"> · {{ lojaDestino.localizacao }}</span>
+            <span v-if="produtoNome"> · {{ produtoNome }}</span>
           </p>
         </div>
-        <span class="route-badge">{{ rota?.tempo_estimado_min || 2 }} min a pé</span>
+        <span class="route-badge num">
+          <AppIcon name="clock" :size="14" />
+          {{ rota?.tempo_estimado_min || 2 }} min a pé
+        </span>
       </div>
 
-      <p class="route-instructions">
-        {{
-          rota?.instrucoes ||
-          'Siga pelo corredor principal e vire à direita até a loja.'
-        }}
-      </p>
+      <div class="route-instructions">
+        <AppIcon name="navigation" :size="16" />
+        <p>
+          {{
+            rota?.instrucoes ||
+            'Siga pelo corredor principal e vire à direita até a loja.'
+          }}
+        </p>
+      </div>
       <p class="route-disclaimer">
-        Origem fixa no totem, sem GPS indoor (RN05 / RN11).
+        Rota calculada a partir deste totem. Não usamos GPS ou localização do seu aparelho.
       </p>
 
       <slot name="actions"></slot>
@@ -82,7 +111,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 const DEFAULT_EMBED_URL = 'https://app.mappedin.com/map/6af749be2250b6000c4fe524?embedded=true'
 
@@ -114,8 +143,24 @@ const props = defineProps({
   produtoNome: {
     type: String,
     default: ''
+  },
+  allowFullscreen: {
+    type: Boolean,
+    default: false
   }
 })
+
+const expanded = ref(false)
+
+// Esc fecha o mapa em tela cheia
+function onKeydown(e) {
+  if (e.key === 'Escape') expanded.value = false
+}
+watch(expanded, (aberto) => {
+  if (aberto) window.addEventListener('keydown', onKeydown)
+  else window.removeEventListener('keydown', onKeydown)
+})
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 const selectedFloor = ref(props.lojaDestino?.pavimento || props.rota?.loja_pavimento || props.pavimentoInicial)
 
@@ -141,7 +186,7 @@ const computedSrc = computed(() => {
 .mappedin-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .map-controls-row {
@@ -153,34 +198,43 @@ const computedSrc = computed(() => {
 }
 
 .floor-pills {
-  display: flex;
-  gap: 8px;
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  background: var(--color-cream);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
 }
 
 .floor-btn {
-  padding: 10px 22px;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: var(--color-cream);
-  color: var(--color-graphite);
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--color-graphite-muted);
+  font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
 }
 
 .floor-btn.active {
-  background: var(--color-gold);
-  border-color: var(--color-gold);
+  background: var(--color-white);
   color: var(--color-graphite);
+  box-shadow: var(--shadow-sm);
 }
 
 .origin-tag {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-graphite-muted);
-  background: var(--color-cream);
-  padding: 6px 12px;
-  border-radius: 999px;
 }
 
 .mappedin-iframe-card {
@@ -189,7 +243,65 @@ const computedSrc = computed(() => {
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--color-border);
-  box-shadow: 0 4px 18px var(--color-shadow);
+  box-shadow: var(--shadow-md);
+}
+
+.map-iframe {
+  border: 0;
+  display: block;
+}
+
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.map-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-graphite-muted);
+}
+
+.map-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-graphite);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Mapa em tela cheia (celular) */
+.mappedin-iframe-card.expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  border-radius: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.mappedin-iframe-card.expanded .map-iframe {
+  flex: 1;
+}
+
+.mappedin-iframe-card.expanded .poi-overlay-bar {
+  display: none;
 }
 
 .poi-overlay-bar {
@@ -197,8 +309,8 @@ const computedSrc = computed(() => {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 8px 12px;
+  padding: 12px 14px;
   background: var(--color-white);
   border-top: 1px solid var(--color-border);
   font-size: 12px;
@@ -206,38 +318,78 @@ const computedSrc = computed(() => {
 }
 
 .poi-origin {
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
   color: var(--color-graphite);
 }
 
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(201, 163, 74, 0.25);
+}
+
+.poi-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .poi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background: var(--color-cream);
   padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 600;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
 }
 
 .route-summary-card {
-  background: var(--color-cream);
+  background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 16px 18px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .route-summary-header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 12px;
+}
+
+.route-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-gold-soft);
+  color: var(--color-gold-deep);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.route-heading {
+  flex: 1;
+  min-width: 0;
 }
 
 .route-store-title {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--color-graphite);
+  margin-top: 2px;
 }
 
 .route-sub {
@@ -247,23 +399,38 @@ const computedSrc = computed(() => {
 }
 
 .route-badge {
-  background: var(--color-gold-soft);
-  color: var(--color-graphite);
-  font-weight: 700;
-  font-size: 12px;
-  padding: 5px 10px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-graphite);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
 .route-instructions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
   font-size: 14px;
+  line-height: 1.5;
   color: var(--color-graphite);
-  line-height: 1.45;
+}
+
+.route-instructions .app-icon {
+  margin-top: 2px;
+  color: var(--color-gold-deep);
 }
 
 .route-disclaimer {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-graphite-muted);
 }
 </style>

@@ -3,24 +3,39 @@
   --color-gold: #C9A34A;          /* Dourado = ação */
   --color-gold-hover: #B69038;
   --color-gold-soft: #F3EAD3;
+  --color-gold-deep: #8A6B20;     /* Dourado legível para texto (contraste AA sobre branco/creme) */
   --color-graphite: #292929;      /* Grafite = conteúdo */
   --color-graphite-muted: #6B665E;
   --color-cream: #F5F1E8;         /* Creme = acolhimento */
   --color-cream-dark: #EAE3D3;
+  --color-surface: #FBF9F4;       /* Fundo neutro entre creme e branco */
   --color-white: #FFFFFF;         /* Branco = clareza */
 
   /* Estados Semânticos */
   --color-success-bg: #E6F2EA;
   --color-success-text: #20603D;
+  --color-success-border: #B7DEC5;
+  --color-danger-bg: #FBEAEA;
+  --color-danger-text: #A61B1B;
   --color-border: #E5DEC9;
+  --color-border-strong: #D3C8AB;
   --color-shadow: rgba(41, 41, 41, 0.08);
+
+  /* Elevação */
+  --shadow-xs: 0 1px 2px rgba(41, 41, 41, 0.05);
+  --shadow-sm: 0 1px 3px rgba(41, 41, 41, 0.06), 0 1px 2px rgba(41, 41, 41, 0.04);
+  --shadow-md: 0 6px 16px -4px rgba(41, 41, 41, 0.10), 0 2px 6px -2px rgba(41, 41, 41, 0.06);
+  --shadow-lg: 0 20px 40px -12px rgba(41, 41, 41, 0.18);
 
   /* Tipografia Oficial */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Raios de borda e espaçamentos */
+  --radius-xs: 6px;
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-pill: 999px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
 }

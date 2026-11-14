@@ -43,11 +43,22 @@ export const api = {
     return request(`/produtos/${id}?totem_id=${totemId}`)
   },
 
+  listarCategorias() {
+    return request('/produtos/categorias')
+  },
+
   // Shopping, Totens, POIs & Rotas (RN03-RN05)
   listarLojas(params = {}) {
-    const qs = new URLSearchParams(params)
+    const qs = new URLSearchParams()
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') qs.append(k, v)
+    })
     const queryStr = qs.toString() ? `?${qs.toString()}` : ''
     return request(`/lojas${queryStr}`)
+  },
+
+  obterPerfilLoja(lojaId, totemId = 1) {
+    return request(`/lojas/${lojaId}/perfil?totem_id=${totemId}`)
   },
 
   obterTotem(totemId = 1) {

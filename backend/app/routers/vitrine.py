@@ -1,15 +1,18 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
+from app.busca import interpretar, normalizar, pontuar
 from app.database import get_db
 from app.models import Loja, Produto, Promocao, Rota
-from app.schemas import LojaOut, ProdutoDetalheOut, ProdutoVitrineOut, RotaOut
+from app.schemas import CategoriaResumoOut, LojaOut, ProdutoDetalheOut, ProdutoVitrineOut, RotaOut
 
 router = APIRouter(prefix="/api/produtos", tags=["Vitrine & Comparação (Público - RN02)"])
 
 
-def serialize_produto(prod: Produto, db: Session, totem_id: int = 1) -> ProdutoVitrineOut:
+def serialize_produto(
+    prod: Produto, db: Session, totem_id: int = 1, rotas: Optional[Dict[int, Rota]] = None
+) -> ProdutoVitrineOut:
     now = datetime.now()
     promo_ativa: Optional[Promocao] = None
     for p in prod.promocoes:
@@ -29,11 +32,14 @@ def serialize_produto(prod: Produto, db: Session, totem_id: int = 1) -> ProdutoV
         desconto = 0
         validade = None
 
-    rota = (
-        db.query(Rota)
-        .filter(Rota.totem_origem_id == totem_id, Rota.loja_destino_id == prod.loja_id)
-        .first()
-    )
+    if rotas is not None:
+        rota = rotas.get(prod.loja_id)
+    else:
+        rota = (
+            db.query(Rota)
+            .filter(Rota.totem_origem_id == totem_id, Rota.loja_destino_id == prod.loja_id)
+            .first()
+        )
     tempo_min = rota.tempo_estimado_min if rota else (2 if "1º" in prod.loja.pavimento else 4)
     instrucoes = (
         rota.instrucoes
@@ -65,15 +71,118 @@ def serialize_produto(prod: Produto, db: Session, totem_id: int = 1) -> ProdutoV
     )
 
 
+def carregar_rotas(db: Session, totem_id: int) -> Dict[int, Rota]:
+    """Rotas do totem indexadas por loja (evita uma consulta por produto)."""
+    return {r.loja_destino_id: r for r in db.query(Rota).filter(Rota.totem_origem_id == totem_id).all()}
+
+
+def _campos_busca(item: ProdutoVitrineOut) -> dict:
+    return {
+        "nome": normalizar(item.nome),
+        "categoria": normalizar(item.categoria),
+        "loja": normalizar(item.loja.nome),
+        "loja_categoria": normalizar(item.loja.categoria),
+        "descricao": normalizar(item.descricao),
+    }
+
+
+def buscar_produtos(
+    db: Session,
+    *,
+    q: Optional[str] = None,
+    categoria: Optional[str] = None,
+    loja_id: Optional[int] = None,
+    pavimento: Optional[str] = None,
+    preco_min: Optional[float] = None,
+    preco_max: Optional[float] = None,
+    promocao: str = "todas",
+    ordenar_por: Optional[str] = None,
+    totem_id: int = 1,
+) -> List[ProdutoVitrineOut]:
+    """
+    Busca real sobre os produtos ativos cadastrados pelos lojistas.
+    RN09: produtos pausados (ativo=False) nunca aparecem.
+    """
+    query = (
+        db.query(Produto)
+        .join(Loja, Produto.loja_id == Loja.id)
+        .options(joinedload(Produto.loja), joinedload(Produto.promocoes))
+        .filter(Produto.ativo == True)  # noqa: E712 - RN09
+    )
+    if loja_id:
+        query = query.filter(Produto.loja_id == loja_id)
+    if pavimento and normalizar(pavimento) not in ("todos", "todas", "1o e 2o piso"):
+        query = query.filter(Loja.pavimento.ilike(f"%{pavimento}%"))
+
+    rotas = carregar_rotas(db, totem_id)
+    items = [serialize_produto(p, db, totem_id=totem_id, rotas=rotas) for p in query.all()]
+
+    # Categorias (aceita várias separadas por vírgula; compara sem acento)
+    if categoria and normalizar(categoria) not in ("todas", "todos"):
+        alvo = {normalizar(c.strip()) for c in categoria.split(",") if c.strip()}
+        items = [i for i in items if normalizar(i.categoria) in alvo]
+
+    # Texto livre interpretado
+    consulta = interpretar(q)
+    if consulta.preco_max is not None and preco_max is None:
+        preco_max = consulta.preco_max
+    if consulta.categorias_ocasiao:
+        alvo = {normalizar(c) for c in consulta.categorias_ocasiao}
+        items = [i for i in items if normalizar(i.categoria) in alvo]
+
+    relevancia: Dict[int, int] = {}
+    if consulta.termos:
+        pontuados = []
+        for item in items:
+            campos = _campos_busca(item)
+            notas = [pontuar(t, campos) for t in consulta.termos]
+            pontuados.append((item, notas))
+        # Todos os termos precisam bater; se nada bater, cai para "qualquer termo"
+        todos = [(i, n) for i, n in pontuados if all(n)]
+        escolhidos = todos or [(i, n) for i, n in pontuados if any(n)]
+        items = [i for i, _ in escolhidos]
+        relevancia = {i.id: sum(n) for i, n in escolhidos}
+
+    if preco_min is not None:
+        items = [i for i in items if i.preco_final >= preco_min]
+    if preco_max is not None:
+        items = [i for i in items if i.preco_final <= preco_max]
+
+    if promocao == "com":
+        items = [i for i in items if i.percentual_desconto > 0]
+    elif promocao == "sem":
+        items = [i for i in items if i.percentual_desconto == 0]
+
+    ordem = ordenar_por or ("relevancia" if consulta.termos else "menor_preco")
+    if ordem == "relevancia":
+        items.sort(key=lambda x: (-relevancia.get(x.id, 0), -x.percentual_desconto, x.preco_final))
+    elif ordem == "maior_preco":
+        items.sort(key=lambda x: x.preco_final, reverse=True)
+    elif ordem == "maior_desconto":
+        items.sort(key=lambda x: (-x.percentual_desconto, x.preco_final))
+    elif ordem == "recente":
+        items.sort(key=lambda x: x.atualizado_em, reverse=True)
+    elif ordem == "nome":
+        items.sort(key=lambda x: normalizar(x.nome))
+    else:  # menor_preco
+        items.sort(key=lambda x: x.preco_final)
+
+    return items
+
+
 @router.get("", response_model=List[ProdutoVitrineOut])
 def listar_produtos_vitrine(
-    q: Optional[str] = Query(default=None, description="Busca livre por produto, ocasião ou loja"),
-    categoria: Optional[str] = Query(default=None, description="Filtro por categoria"),
+    q: Optional[str] = Query(default=None, description="Busca livre: produto, loja, ocasião ou orçamento (ex.: 'tênis até R$ 350')"),
+    categoria: Optional[str] = Query(default=None, description="Categoria(s) separadas por vírgula"),
     loja_id: Optional[int] = Query(default=None, description="Filtro por ID da loja"),
     pavimento: Optional[str] = Query(default=None, description="Filtro por pavimento (1º Piso, 2º Piso)"),
+    preco_min: Optional[float] = Query(default=None, description="Preço mínimo"),
     preco_max: Optional[float] = Query(default=None, description="Orçamento máximo (ex: 350)"),
-    apenas_promocao: bool = Query(default=False, description="Exibir apenas produtos em oferta"),
-    ordenar_por: Optional[str] = Query(default="menor_preco", description="menor_preco | maior_desconto | recente"),
+    promocao: str = Query(default="todas", description="todas | com (em promoção) | sem (preço normal)"),
+    apenas_promocao: bool = Query(default=False, description="Compatibilidade: equivale a promocao=com"),
+    ordenar_por: Optional[str] = Query(
+        default=None, description="relevancia | menor_preco | maior_preco | maior_desconto | recente | nome"
+    ),
     totem_id: int = Query(default=1, description="Totem de referência para cálculo de caminhada"),
     db: Session = Depends(get_db),
 ):
@@ -82,63 +191,33 @@ def listar_produtos_vitrine(
     RN03/RN04: Produtos vinculados a lojas com localização no mapa.
     RN09: Produtos pausados (ativo=False) NÃO aparecem na vitrine pública.
     """
-    query = (
-        db.query(Produto)
-        .join(Loja, Produto.loja_id == Loja.id)
-        .options(joinedload(Produto.loja), joinedload(Produto.promocoes))
-        .filter(Produto.ativo == True)  # noqa: E712 - RN09
+    return buscar_produtos(
+        db,
+        q=q,
+        categoria=categoria,
+        loja_id=loja_id,
+        pavimento=pavimento,
+        preco_min=preco_min,
+        preco_max=preco_max,
+        promocao="com" if apenas_promocao else promocao,
+        ordenar_por=ordenar_por,
+        totem_id=totem_id,
     )
 
-    if categoria and categoria.lower() not in ("todas", "todos"):
-        query = query.filter(Produto.categoria.ilike(f"%{categoria}%"))
 
-    if loja_id:
-        query = query.filter(Produto.loja_id == loja_id)
-
-    if pavimento and pavimento.lower() not in ("todos", "1º e 2º piso"):
-        query = query.filter(Loja.pavimento.ilike(f"%{pavimento}%"))
-
-    produtos_db = query.all()
-    items = [serialize_produto(p, db, totem_id=totem_id) for p in produtos_db]
-
-    # Tratamento inteligente de busca semântica/ocasião dos prints do Figma
-    if q:
-        q_clean = q.strip().lower()
-        # Se a busca for "presente para minha mãe" ou "presente para mãe", retorna os 3 destaques de presente do print
-        if "mãe" in q_clean or "mae" in q_clean or "presente" in q_clean:
-            pass
-        elif "tênis" in q_clean or "tenis" in q_clean or "corrida" in q_clean:
-            items = [
-                i
-                for i in items
-                if "tênis" in i.nome.lower()
-                or "calçados" in i.categoria.lower()
-                or "corrida" in (i.descricao or "").lower()
-            ]
-        else:
-            items = [
-                i
-                for i in items
-                if q_clean in i.nome.lower()
-                or q_clean in (i.descricao or "").lower()
-                or q_clean in i.categoria.lower()
-                or q_clean in i.loja.nome.lower()
-            ]
-
-    if preco_max is not None:
-        items = [i for i in items if i.preco_final <= preco_max]
-
-    if apenas_promocao:
-        items = [i for i in items if i.percentual_desconto > 0]
-
-    if ordenar_por == "menor_preco":
-        items.sort(key=lambda x: x.preco_final)
-    elif ordenar_por == "maior_desconto":
-        items.sort(key=lambda x: x.percentual_desconto, reverse=True)
-    elif ordenar_por == "recente":
-        items.sort(key=lambda x: x.atualizado_em, reverse=True)
-
-    return items
+@router.get("/categorias", response_model=List[CategoriaResumoOut])
+def listar_categorias(db: Session = Depends(get_db)):
+    """Categorias com produtos ativos na vitrine, com contagem total e em promoção."""
+    contagem: Dict[str, Dict[str, int]] = {}
+    for item in buscar_produtos(db):
+        c = contagem.setdefault(item.categoria, {"total": 0, "em_promocao": 0})
+        c["total"] += 1
+        if item.percentual_desconto > 0:
+            c["em_promocao"] += 1
+    return [
+        CategoriaResumoOut(categoria=nome, total=v["total"], em_promocao=v["em_promocao"])
+        for nome, v in sorted(contagem.items(), key=lambda kv: -kv[1]["total"])
+    ]
 
 
 @router.get("/comparar", response_model=List[ProdutoVitrineOut])

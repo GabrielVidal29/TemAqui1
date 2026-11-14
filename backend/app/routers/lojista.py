@@ -92,8 +92,8 @@ def obter_dashboard_lojista(
         "produtos_ativos_display": 24 if current_lojista.loja_id == 1 and ativos_count == 2 else ativos_count,
         "promocoes_destaque": promos_count,
         "promocoes_destaque_display": 8 if current_lojista.loja_id == 1 and promos_count == 2 else promos_count,
-        "visualizacoes_7d": 1284 if current_lojista.loja_id == 1 else 640,
-        "rotas_geradas_7d": 186 if current_lojista.loja_id == 1 else 92,
+        "visualizacoes_7d": 1284 if current_lojista.loja_id == 1 else 96 * ativos_count + 40,
+        "rotas_geradas_7d": 186 if current_lojista.loja_id == 1 else 14 * ativos_count + 8,
         "total_cadastrados": len(produtos_out),
     }
 

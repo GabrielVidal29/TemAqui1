@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFECE4"/>
+      <stop offset="100%" stop-color="#DFD8C8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bg)"/>
+  <ellipse cx="300" cy="350" rx="150" ry="18" fill="#000" opacity="0.06"/>
+  <rect x="268" y="70" width="64" height="90" rx="14" fill="#2F2F2F"/>
+  <rect x="268" y="260" width="64" height="90" rx="14" fill="#2F2F2F"/>
+  <rect x="236" y="146" width="128" height="128" rx="30" fill="#1F1F1F" stroke="#4A4A4A" stroke-width="4"/>
+  <rect x="252" y="162" width="96" height="96" rx="20" fill="#0F1C1B"/>
+  <text x="300" y="214" text-anchor="middle" font-family="Inter, sans-serif" font-size="30" font-weight="700" fill="#E8E2D3">10:42</text>
+  <text x="300" y="238" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#C9A34A">5.2 KM</text>
+  <rect x="364" y="190" width="10" height="26" rx="3" fill="#C9A34A"/>
+</svg>

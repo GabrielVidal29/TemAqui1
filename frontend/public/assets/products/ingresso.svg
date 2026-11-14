@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFECE4"/>
+      <stop offset="100%" stop-color="#DFD8C8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bg)"/>
+  <ellipse cx="300" cy="350" rx="150" ry="18" fill="#000" opacity="0.06"/>
+  <path d="M150 150 H450 V196 Q426 196 426 220 Q426 244 450 244 V290 H150 V244 Q174 244 174 220 Q174 196 150 196 Z" fill="#C9A34A" stroke="#A88433" stroke-width="3"/>
+  <path d="M360 152 V288" stroke="#A88433" stroke-width="3" stroke-dasharray="8 8"/>
+  <text x="258" y="212" text-anchor="middle" font-family="Inter, sans-serif" font-size="30" font-weight="800" fill="#292929">CINEMA</text>
+  <text x="258" y="244" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="600" fill="#5E3720" letter-spacing="2">SALA 3 · 19:30</text>
+  <text x="404" y="230" text-anchor="middle" font-family="Inter, sans-serif" font-size="26" font-weight="800" fill="#292929">XD</text>
+</svg>

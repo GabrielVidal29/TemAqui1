@@ -12,11 +12,17 @@ html, body {
   color: var(--color-graphite);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
   min-height: 100vh;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+  color: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 a {
@@ -24,57 +30,309 @@ a {
   text-decoration: none;
 }
 
-/* Botões Padrão do Guia de Marca (Print 01 - Controles de Navegação) */
-.btn-gold {
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* Foco visível para navegação por teclado (acessibilidade) */
+:focus-visible {
+  outline: 3px solid var(--color-graphite);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Valores numéricos alinhados (preços, KPIs) */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Texto apenas para leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Rótulo pequeno em caixa alta */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-graphite-muted);
+}
+
+/* ----------------------------------------------------------------
+   Botões — Guia de Marca (Dourado = ação, Creme = secundário)
+   ---------------------------------------------------------------- */
+.btn-gold,
+.btn-cream,
+.btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-height: 44px;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease), transform 0.12s var(--ease);
+}
+
+.btn-gold {
   background-color: var(--color-gold);
   color: var(--color-graphite);
-  font-weight: 700;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 14px 22px;
-  cursor: pointer;
-  transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid var(--color-gold);
+  box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .btn-gold:hover {
   background-color: var(--color-gold-hover);
-}
-
-.btn-gold:active {
-  transform: scale(0.985);
+  border-color: var(--color-gold-hover);
 }
 
 .btn-cream {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background-color: var(--color-cream);
+  background-color: var(--color-white);
   color: var(--color-graphite);
-  font-weight: 600;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 12px 18px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+  border: 1px solid var(--color-border-strong);
+  box-shadow: var(--shadow-xs);
 }
 
 .btn-cream:hover {
-  background-color: var(--color-cream-dark);
+  background-color: var(--color-cream);
 }
 
-/* Marca TemAqui com Pin Dourado */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-graphite);
+  padding-inline: 10px;
+}
+
+.btn-ghost:hover {
+  background: var(--color-cream);
+}
+
+.btn-gold:active,
+.btn-cream:active,
+.btn-ghost:active {
+  transform: translateY(1px);
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.btn-lg {
+  min-height: 56px;
+  padding: 16px 24px;
+  font-size: 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Botão apenas com ícone (sempre com aria-label) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--color-graphite-muted);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.icon-btn:hover {
+  background: var(--color-cream);
+  color: var(--color-graphite);
+}
+
+/* Link de ação em texto */
+.link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-graphite);
+  cursor: pointer;
+}
+
+.link-action:hover {
+  color: var(--color-gold-deep);
+}
+
+/* ----------------------------------------------------------------
+   Chips / Pills
+   ---------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-graphite);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+button.chip:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-cream);
+}
+
+.chip.active {
+  background: var(--color-gold-soft);
+  border-color: var(--color-gold);
+  font-weight: 600;
+}
+
+span.chip {
+  cursor: default;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.badge-gold {
+  background: var(--color-gold-soft);
+  color: var(--color-gold-deep);
+}
+
+.badge-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.badge-neutral {
+  background: var(--color-cream);
+  color: var(--color-graphite-muted);
+}
+
+/* ----------------------------------------------------------------
+   Campo de busca padrão
+   ---------------------------------------------------------------- */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 6px 0 14px;
+  min-height: 48px;
+  color: var(--color-graphite-muted);
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.search-field:focus-within {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(201, 163, 74, 0.2);
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: var(--color-graphite);
+}
+
+.search-field input::placeholder {
+  color: #8F897F;
+}
+
+/* Campo de formulário padrão */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-graphite);
+}
+
+.form-field input,
+.form-field select {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-white);
+  font-size: 15px;
+  font-weight: 500;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 4px rgba(201, 163, 74, 0.2);
+}
+
+.form-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-graphite-muted);
+}
+
+/* ----------------------------------------------------------------
+   Marca TemAqui com Pin Dourado
+   ---------------------------------------------------------------- */
 .brand-logo {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-weight: 800;
   color: var(--color-graphite);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
 }
 
 .brand-pin {
@@ -84,7 +342,6 @@ a {
   align-items: center;
   justify-content: center;
   background: var(--color-gold);
-  color: var(--color-white);
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   flex-shrink: 0;
@@ -98,10 +355,12 @@ a {
   border-radius: 50%;
 }
 
-/* Barra superior discreta de alternância rápida de ambiente para avaliação da banca */
+/* ----------------------------------------------------------------
+   Barra superior de alternância de ambiente (avaliação da banca)
+   ---------------------------------------------------------------- */
 .env-switcher-bar {
   background: #1F1F1F;
-  color: #F5F1E8;
+  color: #D9D3C4;
   font-size: 12px;
   padding: 6px 16px;
   display: flex;
@@ -112,23 +371,54 @@ a {
   border-bottom: 1px solid rgba(201, 163, 74, 0.35);
 }
 
-.env-switcher-links {
-  display: flex;
+.env-switcher-title {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.env-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 600;
+.env-switcher-title strong {
   color: #F5F1E8;
+  font-weight: 600;
+}
+
+.env-switcher-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.env-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  color: #D9D3C4;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.env-pill:hover {
   background: rgba(255, 255, 255, 0.08);
-  transition: all 0.15s ease;
+  color: #FFFFFF;
 }
 
 .env-pill.router-link-active,
 .env-pill.active {
   background: var(--color-gold);
   color: var(--color-graphite);
+  font-weight: 600;
+}
+
+.env-pill:focus-visible {
+  outline-color: var(--color-gold);
+}
+
+/* Respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

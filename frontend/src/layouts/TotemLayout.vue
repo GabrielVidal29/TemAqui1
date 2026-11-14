@@ -15,7 +15,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px 16px;
+  padding: 24px 16px;
   background: #DFD9C9;
 }
 
@@ -25,8 +25,8 @@
   min-height: 1120px;
   background: var(--color-white);
   border-radius: 28px;
-  border: 8px solid var(--color-graphite);
-  box-shadow: 0 24px 60px rgba(41, 41, 41, 0.22);
+  border: 10px solid #1F1F1F;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;

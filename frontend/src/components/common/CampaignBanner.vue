@@ -1,26 +1,34 @@
 <template>
-  <div class="campaign-banner" @click="$emit('action', activeSlide)">
+  <section class="campaign-banner" aria-roledescription="carrossel" aria-label="Campanhas do shopping">
     <div class="campaign-content">
-      <span class="campaign-eyebrow">{{ activeSlide.eyebrow }}</span>
+      <span class="eyebrow campaign-eyebrow">{{ activeSlide.eyebrow }}</span>
       <h3 class="campaign-title">{{ activeSlide.title }}</h3>
       <p class="campaign-subtitle">{{ activeSlide.subtitle }}</p>
-      <div class="campaign-dots">
-        <button
-          v-for="(slide, idx) in slides"
-          :key="idx"
-          type="button"
-          class="dot-btn"
-          :class="{ active: idx === currentIndex }"
-          @click.stop="currentIndex = idx"
-        >
-          0{{ idx + 1 }}
+
+      <div class="campaign-footer">
+        <button type="button" class="btn-gold btn-sm" @click="$emit('action', activeSlide)">
+          Ver ofertas
+          <AppIcon name="arrow-right" :size="16" />
         </button>
+
+        <div class="campaign-dots">
+          <button
+            v-for="(slide, idx) in slides"
+            :key="idx"
+            type="button"
+            class="dot-btn"
+            :class="{ active: idx === currentIndex }"
+            :aria-label="`Campanha ${idx + 1} de ${slides.length}`"
+            :aria-current="idx === currentIndex ? 'true' : undefined"
+            @click="currentIndex = idx"
+          ></button>
+        </div>
       </div>
     </div>
     <div class="campaign-img-wrap">
-      <img :src="activeSlide.image" :alt="activeSlide.title" class="campaign-img" />
+      <img :src="activeSlide.image" alt="" class="campaign-img" />
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
@@ -28,21 +36,21 @@ import { computed, ref } from 'vue'
 
 const slides = [
   {
-    eyebrow: 'ACHADINHOS DO SHOPPING',
+    eyebrow: 'Achadinhos do shopping',
     title: 'Seu próximo achado está mais perto.',
     subtitle: 'Até 25% de desconto em produtos selecionados.',
     image: '/assets/products/tenis-sprint.svg',
     filter: { q: 'tênis de corrida até R$ 350', preco_max: 350 }
   },
   {
-    eyebrow: 'OFERTAS DA SEMANA',
+    eyebrow: 'Ofertas da semana',
     title: 'Novas ofertas, novos encontros.',
     subtitle: 'Moda, beleza e acessórios para o seu dia.',
     image: '/assets/products/bolsa-caramelo.svg',
     filter: { q: 'presente para minha mãe' }
   },
   {
-    eyebrow: 'DESCONTOS ESPECIAIS',
+    eyebrow: 'Descontos especiais',
     title: 'Mais descoberta. Menos no preço.',
     subtitle: 'Compare ofertas e siga até a loja.',
     image: '/assets/products/perfume-essencial.svg',
@@ -58,15 +66,16 @@ defineEmits(['action'])
 
 <style scoped>
 .campaign-banner {
-  background: var(--color-cream);
+  position: relative;
+  background: linear-gradient(120deg, var(--color-cream) 0%, var(--color-gold-soft) 100%);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 18px 20px;
+  padding: 22px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  cursor: pointer;
+  gap: 20px;
+  overflow: hidden;
 }
 
 .campaign-content {
@@ -74,56 +83,71 @@ defineEmits(['action'])
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  min-width: 0;
 }
 
 .campaign-eyebrow {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-graphite-muted);
+  color: var(--color-gold-deep);
 }
 
 .campaign-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.02em;
   color: var(--color-graphite);
 }
 
 .campaign-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-graphite-muted);
+}
+
+.campaign-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
 }
 
 .campaign-dots {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 4px;
 }
 
 .dot-btn {
-  background: none;
+  width: 24px;
+  height: 24px;
   border: none;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-graphite-muted);
+  background: none;
   cursor: pointer;
-  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.dot-btn.active {
-  color: var(--color-graphite);
-  border-bottom: 2px solid var(--color-gold);
+.dot-btn::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  transition: width 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+
+.dot-btn.active::before {
+  width: 20px;
+  background: var(--color-graphite);
 }
 
 .campaign-img-wrap {
-  width: 118px;
-  height: 92px;
-  border-radius: 12px;
+  width: 132px;
+  height: 108px;
+  border-radius: 14px;
   overflow: hidden;
   flex-shrink: 0;
   background: var(--color-white);
+  box-shadow: var(--shadow-md);
 }
 
 .campaign-img {

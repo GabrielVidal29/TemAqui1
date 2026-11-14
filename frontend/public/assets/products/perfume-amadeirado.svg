@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFECE4"/>
+      <stop offset="100%" stop-color="#DFD8C8"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="420" rx="20" fill="url(#bg)"/>
+  <ellipse cx="300" cy="350" rx="150" ry="18" fill="#000" opacity="0.06"/>
+  <ellipse cx="300" cy="340" rx="120" ry="18" fill="#FAF8F3" stroke="#E2DAC9" stroke-width="2"/>
+  <rect x="232" y="140" width="136" height="192" rx="8" fill="#2C3A47" stroke="#4E6070" stroke-width="3"/>
+  <rect x="254" y="190" width="92" height="76" rx="4" fill="#1F2933" stroke="#C9A34A" stroke-width="1.5"/>
+  <text x="300" y="226" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#E8E2D3" letter-spacing="2">BOSQUE</text>
+  <text x="300" y="246" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#C9A34A">POUR HOMME</text>
+  <rect x="270" y="96" width="60" height="46" rx="4" fill="#1A1A1A" stroke="#C9A34A" stroke-width="2"/>
+</svg>

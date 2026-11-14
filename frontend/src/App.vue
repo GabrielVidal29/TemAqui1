@@ -1,22 +1,26 @@
 <template>
   <div class="app-root">
     <!-- Barra discreta de alternância rápida entre as 3 interfaces do Monorepo -->
-    <div class="env-switcher-bar">
-      <span>
-        <strong>TemAqui • Capim Dourado Shopping</strong> — HACKARUN 2026
+    <nav class="env-switcher-bar" aria-label="Alternar interface de demonstração">
+      <span class="env-switcher-title">
+        <strong>TemAqui</strong>
+        <span>Capim Dourado Shopping · HACKARUN 2026</span>
       </span>
       <div class="env-switcher-links">
         <router-link to="/totem/1" class="env-pill">
-          🖥️ Totem Interativo (/totem/1)
+          <AppIcon name="monitor" :size="14" />
+          Totem
         </router-link>
         <router-link to="/" exact-active-class="active" class="env-pill">
-          📱 Site Mobile (/)
+          <AppIcon name="smartphone" :size="14" />
+          Mobile
         </router-link>
         <router-link to="/lojista" class="env-pill">
-          🏪 Painel do Lojista (/lojista)
+          <AppIcon name="store" :size="14" />
+          Lojista
         </router-link>
       </div>
-    </div>
+    </nav>
 
     <router-view />
   </div>

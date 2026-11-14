@@ -132,6 +132,32 @@ class ProdutoStatusPatchRequest(BaseModel):
     ativo: bool
 
 
+class CategoriaResumoOut(BaseModel):
+    categoria: str
+    total: int
+    em_promocao: int
+
+
+class LojaResumoOut(LojaOut):
+    """Loja + indicadores públicos da vitrine (cartão de loja na aba 'Lojas')."""
+
+    total_produtos: int = 0
+    total_promocoes: int = 0
+    maior_desconto: int = 0
+    menor_preco: Optional[float] = None
+    categorias_produtos: List[str] = []
+    atualizado_em: Optional[datetime] = None
+
+
+class LojaPerfilOut(BaseModel):
+    """Perfil público da loja: dados, localização, rota a partir do totem e produtos ativos."""
+
+    loja: LojaResumoOut
+    rota: Optional[RotaOut] = None
+    destaques: List[ProdutoVitrineOut] = []
+    produtos: List[ProdutoVitrineOut] = []
+
+
 class DashboardLojistaOut(BaseModel):
     loja: LojaOut
     lojista: LojistaProfileOut

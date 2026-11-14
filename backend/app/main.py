@@ -5,6 +5,7 @@ from app.config import CORS_ORIGINS
 from app.database import Base, SessionLocal, engine
 from app.routers import lojista, shopping, vitrine
 from app.seed import run_seed
+from app.seed_catalogo import run_seed_catalogo
 
 
 @asynccontextmanager
@@ -13,6 +14,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         run_seed(db)
+        run_seed_catalogo(db)
     finally:
         db.close()
     yield
