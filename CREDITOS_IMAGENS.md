@@ -74,3 +74,10 @@ As lojas e os produtos são fictícios. As fotos são só ilustrativas e não re
 | Urso de Pelúcia 40 cm | `urso-de-pelucia-40-cm.jpg` | [Cute teddy bear, stuffed animal](https://www.rawpixel.com/image/6017197/photo-image-background-public-domain-cute) | — | rawpixel | CC0 1.0 (domínio público) |
 | Jogo de Tabuleiro Família | `jogo-de-tabuleiro-familia.jpg` | [Free colorful board game pieces](https://www.rawpixel.com/image/5905808/photo-image-public-domain-free-game) | — | rawpixel | CC0 1.0 (domínio público) |
 | Carrinho de Controle Remoto | `carrinho-de-controle-remoto.jpg` | [Toy Car](https://stocksnap.io/photo/toy-car-2F0K9XM0NX) | [Mike Birdy](https://stocksnap.io/author/29629) | stocksnap | CC0 1.0 (domínio público) |
+
+## Tela de abertura do totem
+
+| Arquivo | Origem |
+|---|---|
+| `frontend/public/assets/abertura-totem.jpg` | Imagem ilustrativa de corredor de shopping, gerada por IA (ChatGPT) pela equipe. Não é uma foto do Capim Dourado Shopping. |
+| `frontend/public/assets/logos/capim-dourado-branco.png` | Logo do Capim Dourado Shopping (marca do shopping), em versão branca com fundo transparente, usada na assinatura "TemAqui no Capim Dourado". |
