@@ -13,35 +13,61 @@
       </span>
       <h2 class="qr-title">Continue sua busca e rota no celular</h2>
       <p class="qr-subtitle">
-        Aponte a câmera do seu celular para o código. Sem baixar aplicativo e sem criar conta.
+        Sem baixar aplicativo e sem criar conta.
       </p>
     </div>
-
-    <!-- QR Code ilustrativo (no protótipo, o toque simula a leitura e abre a experiência Mobile) -->
-    <button
-      type="button"
-      class="qr-box-wrapper"
-      aria-label="QR Code. No protótipo, toque para simular a leitura no celular"
-      @click="abrirNoCelular"
-    >
-      <QrGlyph class="qr-svg" :valor="urlQr" />
-      <span class="qr-hint">
-        <AppIcon name="touch" :size="14" />
-        Aponte a câmera do celular · {{ dominio }}/celular
-      </span>
-    </button>
 
     <div class="qr-context-summary">
       <span class="eyebrow">O que vai para o celular</span>
       <strong>{{ resumoTitulo }}</strong>
       <p>{{ resumoDetalhe }}</p>
+      <p v-if="a11y" class="qr-a11y-note">
+        <AppIcon name="accessibility" :size="14" />
+        Suas opções de acessibilidade também vão para o celular.
+      </p>
     </div>
 
-    <div class="qr-actions">
-      <button type="button" class="btn-gold btn-lg full-width" @click="abrirNoCelular">
-        Simular leitura no celular
-        <AppIcon name="arrow-right" :size="18" />
+    <!-- QR Code e leitor NFC na parte de baixo da tela: ao alcance de quem está sentado -->
+    <div class="qr-bottom">
+      <p class="nfc-aviso" role="note">
+        <AppIcon name="nfc" :size="22" />
+        <strong>{{ AVISO_NFC }}</strong>
+      </p>
+
+      <button
+        type="button"
+        class="qr-box-wrapper"
+        aria-label="QR Code para abrir no celular. No protótipo, toque para simular a leitura"
+        @click="abrirNoCelular"
+      >
+        <QrGlyph class="qr-svg" :valor="urlQr" />
+        <span class="qr-hint">
+          <AppIcon name="touch" :size="14" />
+          Toque no código para simular · {{ dominio }}/celular
+        </span>
       </button>
+
+      <!-- Indicador do leitor NFC (simulação: o hardware ficaria abaixo da tela, no centro) -->
+      <div class="nfc-reader" :class="`nfc-${estadoNfc}`">
+        <span class="nfc-pad" aria-hidden="true">
+          <span class="nfc-ring"></span>
+          <span class="nfc-ring r2"></span>
+          <AppIcon :name="estadoNfc === 'ok' ? 'check' : 'nfc'" :size="30" />
+        </span>
+        <span class="nfc-label">Leitor NFC · centro, abaixo da tela</span>
+        <button
+          type="button"
+          class="btn-gold btn-lg nfc-btn"
+          :disabled="estadoNfc === 'lendo'"
+          @click="simularNfc"
+        >
+          <AppIcon name="smartphone" :size="18" />
+          {{ estadoNfc === 'lendo' ? 'Lendo o celular…' : 'Simular aproximação NFC' }}
+        </button>
+        <p class="nfc-status" role="status" aria-live="polite">{{ mensagemNfc }}</p>
+        <span class="nfc-seta" aria-hidden="true"><AppIcon name="arrow-down-to-line" :size="22" /></span>
+      </div>
+
       <button type="button" class="btn-cream full-width" @click="$emit('close')">
         Retornar ao totem
       </button>
@@ -50,8 +76,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import QrGlyph from '@/components/common/QrGlyph.vue'
+import { falar } from '@/composables/useVoz'
+import { AVISO_NFC } from '@/utils/leitura'
 import { urlCelular, urlPublicaDoSite } from '@/utils/qr'
 
 const props = defineProps({
@@ -70,6 +98,15 @@ const props = defineProps({
   loja: {
     type: Object,
     default: null
+  },
+  // Preferências de acessibilidade ativas (?a11y=...), levadas para o celular
+  a11y: {
+    type: String,
+    default: ''
+  },
+  leituraVoz: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -88,13 +125,14 @@ const resumoDetalhe = computed(() => {
   return `${nomeProd} · Rota até ${nomeLoja} · ${piso}`
 })
 
-// URL que o celular abre ao ler o QR: somente o layout mobile (/celular) + contexto do totem
+// URL que o celular abre ao ler o QR/NFC: somente o layout mobile (/celular) + contexto do totem
 const urlQr = computed(() =>
   urlCelular({
     fromTotem: props.totemId || 1,
     q: props.searchQuery,
     produtoId: props.produto?.id,
-    lojaId: props.loja?.id || props.produto?.loja_id
+    lojaId: props.loja?.id || props.produto?.loja_id,
+    a11y: props.a11y
   })
 )
 
@@ -104,6 +142,29 @@ const dominio = computed(() => urlPublicaDoSite().replace(/^https?:\/\//, ''))
 function abrirNoCelular() {
   window.open(urlQr.value, '_blank', 'noopener')
 }
+
+// Simulação do leitor NFC: no hardware real, aproximar o celular enviaria o mesmo link do QR Code
+const estadoNfc = ref('aguardando') // 'aguardando' | 'lendo' | 'ok'
+const mensagemNfc = ref('')
+let timer = null
+
+function simularNfc() {
+  estadoNfc.value = 'lendo'
+  mensagemNfc.value = 'Celular detectado. Enviando a busca…'
+  abrirNoCelular() // abre já no toque, para o navegador não bloquear a nova aba
+  clearTimeout(timer)
+  timer = setTimeout(() => {
+    estadoNfc.value = 'ok'
+    mensagemNfc.value = 'Pronto! A busca e a rota abriram no seu celular.'
+    if (props.leituraVoz) falar(mensagemNfc.value)
+  }, 1200)
+}
+
+onMounted(() => {
+  if (props.leituraVoz) falar(`Levar para o celular. ${AVISO_NFC}`)
+})
+
+onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <style scoped>
@@ -169,8 +230,8 @@ function abrirNoCelular() {
 }
 
 .qr-svg {
-  width: 220px;
-  height: 220px;
+  width: 200px;
+  height: 200px;
 }
 
 .qr-hint {
@@ -204,9 +265,133 @@ function abrirNoCelular() {
   color: var(--color-graphite-muted);
 }
 
-.qr-actions {
+
+/* Ocupa a altura da tela para o QR Code e o NFC ficarem embaixo */
+.qr-card-view {
+  flex: 1;
+}
+
+.qr-bottom {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.qr-a11y-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-weight: 600;
+  color: var(--color-graphite) !important;
+}
+
+.nfc-aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: var(--color-graphite);
+  color: var(--color-white);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.nfc-aviso strong {
+  font-weight: 600;
+}
+
+.nfc-reader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
+  width: 100%;
+  padding: 18px 16px 6px;
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--color-gold);
+  background: var(--color-gold-soft);
+  text-align: center;
+}
+
+.nfc-pad {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-white);
+  color: var(--color-graphite);
+  box-shadow: var(--shadow-md);
+}
+
+.nfc-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gold);
+  opacity: 0;
+  animation: nfc-onda 2s ease-out infinite;
+}
+
+.nfc-ring.r2 {
+  animation-delay: 1s;
+}
+
+.nfc-lendo .nfc-ring {
+  animation-duration: 0.8s;
+}
+
+.nfc-ok .nfc-pad {
+  background: var(--color-success-text);
+  color: #FFFFFF;
+}
+
+.nfc-ok .nfc-ring {
+  animation: none;
+}
+
+@keyframes nfc-onda {
+  0% { transform: scale(0.9); opacity: 0.9; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nfc-ring {
+    animation: none;
+  }
+}
+
+.nfc-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-graphite);
+}
+
+.nfc-btn {
+  min-width: 280px;
+}
+
+.nfc-status {
+  min-height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-success-text);
+}
+
+.nfc-seta {
+  color: var(--color-gold-deep);
+  animation: nfc-seta 1.4s ease-in-out infinite;
+}
+
+@keyframes nfc-seta {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
 }
 </style>

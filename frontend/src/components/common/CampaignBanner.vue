@@ -39,21 +39,21 @@ const slides = [
     eyebrow: 'Achadinhos do shopping',
     title: 'Seu próximo achado está mais perto.',
     subtitle: 'Até 25% de desconto em produtos selecionados.',
-    image: '/assets/products/tenis-sprint.svg',
+    image: '/assets/products/fotos/tenis-sprint-run.jpg',
     filter: { q: 'tênis de corrida até R$ 350', preco_max: 350 }
   },
   {
     eyebrow: 'Ofertas da semana',
     title: 'Novas ofertas, novos encontros.',
     subtitle: 'Moda, beleza e acessórios para o seu dia.',
-    image: '/assets/products/bolsa-caramelo.svg',
+    image: '/assets/products/fotos/bolsa-couro-caramelo.jpg',
     filter: { q: 'presente para minha mãe' }
   },
   {
     eyebrow: 'Descontos especiais',
     title: 'Mais descoberta. Menos no preço.',
     subtitle: 'Compare ofertas e siga até a loja.',
-    image: '/assets/products/perfume-essencial.svg',
+    image: '/assets/products/fotos/perfume-essencial-100-ml.jpg',
     filter: { apenas_promocao: true }
   }
 ]

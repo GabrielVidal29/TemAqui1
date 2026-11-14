@@ -24,12 +24,14 @@
 
     <router-view />
     <SextaToast />
+    <AnuncioAoVivo />
   </div>
 </template>
 
 <script setup>
 import { useRoute } from 'vue-router'
 import SextaToast from '@/components/sexta13/SextaToast.vue'
+import AnuncioAoVivo from '@/components/a11y/AnuncioAoVivo.vue'
 
 // Rotas "standalone" (ex.: /celular, aberta pelo QR Code) não mostram a barra de demonstração
 const route = useRoute()

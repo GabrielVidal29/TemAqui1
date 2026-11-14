@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -48,6 +48,41 @@ class Produto(Base):
     promocoes: Mapped[List["Promocao"]] = relationship(
         "Promocao", back_populates="produto", cascade="all, delete-orphan"
     )
+    imagem: Mapped[Optional["ImagemProduto"]] = relationship(
+        "ImagemProduto", back_populates="produto", cascade="all, delete-orphan", uselist=False
+    )
+
+
+class ImagemProduto(Base):
+    """
+    Foto enviada pelo lojista. Fica no próprio banco (e não em disco) porque o disco
+    dos serviços gratuitos do Render é apagado a cada reinício/deploy.
+    """
+    __tablename__ = "imagens_produto"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    produto_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("produtos.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+    )
+    mime: Mapped[str] = mapped_column(String(40), nullable=False)
+    conteudo: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+
+    produto: Mapped["Produto"] = relationship("Produto", back_populates="imagem")
+
+
+class ProdutoExcluido(Base):
+    """
+    Registro dos produtos excluídos pelo lojista, para que o catálogo de demonstração
+    (seed_catalogo) não os recrie quando o servidor reiniciar.
+    """
+    __tablename__ = "produtos_excluidos"
+    __table_args__ = (UniqueConstraint("nome", "loja_id", name="uq_produto_excluido"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    nome: Mapped[str] = mapped_column(String(160), nullable=False)
+    loja_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    excluido_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
 
 
 class Promocao(Base):

@@ -39,3 +39,54 @@
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
+
+/* ================================================================
+   Acessibilidade — atributos aplicados no <html> por useAcessibilidade.js
+   ================================================================ */
+
+/* B2 — Escala de fonte (A+ e A++). Usada com "zoom" nas áreas de conteúdo:
+   o texto, os preços e as instruções crescem e o layout se reorganiza sem vazar da tela. */
+:root {
+  --a11y-zoom: 1;
+}
+
+:root[data-fonte='1'] {
+  --a11y-zoom: 1.15;
+}
+
+:root[data-fonte='2'] {
+  --a11y-zoom: 1.3;
+}
+
+/* B1 — Alto contraste: preto #000000, branco #FFFFFF e amarelo #FFD600.
+   As cores da marca são trocadas pelas três; fundos claros viram pretos e textos viram brancos. */
+:root[data-contraste='alto'] {
+  --hc-preto: #000000;
+  --hc-branco: #FFFFFF;
+  --hc-amarelo: #FFD600;
+
+  --color-gold: #FFD600;
+  --color-gold-hover: #FFE45C;
+  --color-gold-soft: #000000;
+  --color-gold-deep: #FFD600;
+  --color-graphite: #FFFFFF;
+  --color-graphite-muted: #FFFFFF;
+  --color-cream: #000000;
+  --color-cream-dark: #000000;
+  --color-surface: #000000;
+  --color-white: #000000;
+
+  --color-success-bg: #000000;
+  --color-success-text: #FFD600;
+  --color-success-border: #FFD600;
+  --color-danger-bg: #000000;
+  --color-danger-text: #FFD600;
+  --color-border: #FFFFFF;
+  --color-border-strong: #FFFFFF;
+  --color-shadow: transparent;
+
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}

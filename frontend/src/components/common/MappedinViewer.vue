@@ -63,8 +63,14 @@
         </span>
         <div class="poi-legend">
           <span class="poi-chip"><AppIcon name="route" :size="13" /> Rota</span>
-          <span class="poi-chip"><AppIcon name="arrow-up-down" :size="13" /> Elevador / escada</span>
-          <span class="poi-chip"><AppIcon name="info" :size="13" /> Banheiros</span>
+          <template v-if="rota?.acessivel">
+            <span class="poi-chip poi-chip-a11y"><AppIcon name="elevator" :size="13" /> Só elevador</span>
+            <span class="poi-chip poi-chip-a11y"><AppIcon name="accessibility" :size="13" /> WC PCD</span>
+          </template>
+          <template v-else>
+            <span class="poi-chip"><AppIcon name="arrow-up-down" :size="13" /> Elevador / escada</span>
+            <span class="poi-chip"><AppIcon name="info" :size="13" /> Banheiros</span>
+          </template>
         </div>
       </div>
     </div>
@@ -92,8 +98,8 @@
         </span>
       </div>
 
-      <div class="route-instructions">
-        <AppIcon name="navigation" :size="16" />
+      <div class="route-instructions" :class="{ acessivel: rota?.acessivel }">
+        <AppIcon :name="rota?.acessivel ? 'elevator' : 'navigation'" :size="16" />
         <p>
           {{
             rota?.instrucoes ||
@@ -101,6 +107,8 @@
           }}
         </p>
       </div>
+      <RotaPassos v-if="rota?.passos?.length" :rota="rota" />
+
       <p class="route-disclaimer">
         Rota calculada a partir deste totem. Não usamos GPS ou localização do seu aparelho.
       </p>
@@ -112,6 +120,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import RotaPassos from '@/components/a11y/RotaPassos.vue'
 
 const DEFAULT_EMBED_URL = 'https://app.mappedin.com/map/6af749be2250b6000c4fe524?embedded=true'
 
@@ -187,6 +196,21 @@ const computedSrc = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Fonte A+/A++: amplia controles e instruções, mas não o iframe do mapa */
+.map-controls-row,
+.route-summary-card {
+  zoom: var(--a11y-zoom, 1);
+}
+
+.poi-chip-a11y {
+  background: var(--color-graphite) !important;
+  color: var(--color-white) !important;
+}
+
+.route-instructions.acessivel {
+  border-left: 4px solid var(--color-graphite);
 }
 
 .map-controls-row {

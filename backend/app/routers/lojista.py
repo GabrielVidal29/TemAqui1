@@ -1,10 +1,12 @@
+import base64
+import binascii
 from datetime import datetime, timedelta
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session, joinedload
 from app.auth import create_access_token, get_current_lojista, verify_password
 from app.database import get_db
-from app.models import Lojista, Produto, Promocao
+from app.models import ImagemProduto, Lojista, Produto, ProdutoExcluido, Promocao
 from app.routers.vitrine import serialize_produto
 from app.schemas import (
     DashboardLojistaOut,
@@ -13,6 +15,7 @@ from app.schemas import (
     LojaOut,
     LojistaProfileOut,
     ProdutoCreateRequest,
+    ProdutoImagemRequest,
     ProdutoStatusPatchRequest,
     ProdutoUpdateRequest,
     ProdutoVitrineOut,
@@ -144,7 +147,7 @@ def cadastrar_produto(
         descricao=payload.descricao or "Consulte tamanhos e cores disponíveis na loja.",
         categoria=payload.categoria.strip(),
         preco=payload.preco,
-        imagem_url=payload.imagem_url or "/assets/products/tenis-sprint.svg",
+        imagem_url=payload.imagem_url or "/assets/products/fotos/tenis-sprint-run.jpg",
         ativo=payload.ativo,
         atualizado_em=now,
         loja_id=current_lojista.loja_id,
@@ -266,3 +269,100 @@ def alternar_status_produto(
     db.commit()
     db.refresh(prod)
     return serialize_produto(prod, db)
+
+
+def _produto_da_loja(db: Session, produto_id: int, current_lojista: Lojista) -> Produto:
+    prod = (
+        db.query(Produto)
+        .options(joinedload(Produto.loja), joinedload(Produto.promocoes))
+        .filter(Produto.id == produto_id)
+        .first()
+    )
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    if prod.loja_id != current_lojista.loja_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="RN08: Você não tem permissão para alterar produtos de outra loja.",
+        )
+    return prod
+
+
+# Formatos aceitos e tamanho máximo da foto já decodificada
+TIPOS_IMAGEM = {"image/jpeg", "image/png", "image/webp"}
+TAMANHO_MAX_IMAGEM = 2 * 1024 * 1024
+ASSINATURAS = {
+    "image/jpeg": (bytes.fromhex("ffd8ff"),),
+    "image/png": (bytes.fromhex("89504e470d0a1a0a"),),
+    "image/webp": (b"RIFF",),
+}
+
+
+def _decodificar_imagem(data_url: str) -> tuple[str, bytes]:
+    """Valida um data URL (data:image/jpeg;base64,....) e devolve (mime, bytes)."""
+    try:
+        cabecalho, dados = data_url.split(",", 1)
+        mime = cabecalho.removeprefix("data:").split(";")[0].strip().lower()
+        if not cabecalho.startswith("data:") or ";base64" not in cabecalho:
+            raise ValueError
+        conteudo = base64.b64decode(dados, validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(status_code=422, detail="Arquivo de imagem inválido.")
+    if mime not in TIPOS_IMAGEM:
+        raise HTTPException(status_code=422, detail="Formato não suportado. Envie uma foto JPG, PNG ou WebP.")
+    if len(conteudo) > TAMANHO_MAX_IMAGEM:
+        raise HTTPException(status_code=413, detail="A foto é muito grande. O limite é de 2 MB.")
+    if not conteudo.startswith(ASSINATURAS[mime]):
+        raise HTTPException(status_code=422, detail="O conteúdo do arquivo não corresponde a uma imagem válida.")
+    return mime, conteudo
+
+
+@router.put("/produtos/{produto_id}/imagem", response_model=ProdutoVitrineOut)
+def enviar_foto_produto(
+    produto_id: int,
+    payload: ProdutoImagemRequest,
+    current_lojista: Lojista = Depends(get_current_lojista),
+    db: Session = Depends(get_db),
+):
+    """
+    Envia (ou troca) a foto do produto. A imagem fica salva no banco de dados e
+    passa a ser servida em /api/produtos/{id}/imagem.
+    """
+    prod = _produto_da_loja(db, produto_id, current_lojista)
+    mime, conteudo = _decodificar_imagem(payload.imagem)
+
+    now = datetime.now()
+    imagem = db.query(ImagemProduto).filter(ImagemProduto.produto_id == prod.id).first()
+    if imagem:
+        imagem.mime, imagem.conteudo, imagem.atualizado_em = mime, conteudo, now
+    else:
+        db.add(ImagemProduto(produto_id=prod.id, mime=mime, conteudo=conteudo, atualizado_em=now))
+
+    # O parâmetro "v" muda a cada envio, para o navegador não mostrar a foto antiga do cache
+    prod.imagem_url = f"/api/produtos/{prod.id}/imagem?v={int(now.timestamp())}"
+    prod.atualizado_em = now
+    db.commit()
+    db.refresh(prod)
+    return serialize_produto(prod, db)
+
+
+@router.delete("/produtos/{produto_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir_produto(
+    produto_id: int,
+    current_lojista: Lojista = Depends(get_current_lojista),
+    db: Session = Depends(get_db),
+):
+    """
+    RN08: Exclui definitivamente um produto da própria loja (com promoções e foto).
+    """
+    prod = _produto_da_loja(db, produto_id, current_lojista)
+    ja_registrado = (
+        db.query(ProdutoExcluido)
+        .filter(ProdutoExcluido.nome == prod.nome, ProdutoExcluido.loja_id == prod.loja_id)
+        .first()
+    )
+    if not ja_registrado:
+        db.add(ProdutoExcluido(nome=prod.nome, loja_id=prod.loja_id))
+    db.delete(prod)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

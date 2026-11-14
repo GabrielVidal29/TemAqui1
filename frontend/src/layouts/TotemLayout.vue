@@ -29,7 +29,8 @@
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* clip (e não hidden) para as abas e o dock do modo cadeirante ficarem fixos ao rolar */
+  overflow: clip;
 }
 
 @media (min-width: 1080px) and (min-height: 1600px) {

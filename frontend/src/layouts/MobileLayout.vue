@@ -22,10 +22,22 @@
           <span class="brand-pin"></span>
           <span>TemAqui</span>
         </router-link>
-        <span class="mall-tag">
-          <AppIcon name="map-pin" :size="14" />
-          Capim Dourado
-        </span>
+        <div class="header-right">
+          <span class="mall-tag">
+            <AppIcon name="map-pin" :size="14" />
+            Capim Dourado
+          </span>
+          <button
+            type="button"
+            class="a11y-header-btn"
+            :class="{ ativo: a11y.temAlgumAtivo.value }"
+            aria-label="Acessibilidade"
+            :aria-expanded="painelA11y"
+            @click="painelA11y = true"
+          >
+            <AppIcon name="accessibility" :size="20" />
+          </button>
+        </div>
       </header>
 
       <!-- Conteúdo principal da rota Mobile -->
@@ -33,13 +45,17 @@
         <router-view />
       </main>
     </div>
+
+    <PainelAcessibilidade v-if="painelA11y" contexto="mobile" compacto @fechar="painelA11y = false" />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSexta13 } from '@/composables/useSexta13'
+import { useAcessibilidade } from '@/composables/useAcessibilidade'
+import PainelAcessibilidade from '@/components/a11y/PainelAcessibilidade.vue'
 
 // /celular (aberto pelo QR Code): só o app mobile, em tela cheia, sem a moldura de demonstração
 const route = useRoute()
@@ -47,6 +63,18 @@ const standalone = computed(() => !!route.meta.standalone)
 
 // Easter egg: 13 toques seguidos no logo ligam/desligam o modo sexta-feira 13
 const sexta13 = useSexta13()
+
+// Acessibilidade no celular: painel compacto + opções vindas do totem pelo QR Code/NFC (?a11y=)
+const a11y = useAcessibilidade('mobile')
+a11y.aplicarNoDocumento()
+const painelA11y = ref(false)
+watch(
+  () => route.query.a11y,
+  (valor) => {
+    if (valor) a11y.aplicarParametro(valor)
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
@@ -146,5 +174,30 @@ const sexta13 = useSexta13()
   .mobile-statusbar {
     display: none;
   }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.a11y-header-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-white);
+  color: var(--color-graphite);
+  cursor: pointer;
+}
+
+.a11y-header-btn.ativo {
+  background: var(--color-graphite);
+  color: var(--color-white);
+  border-color: var(--color-graphite);
 }
 </style>

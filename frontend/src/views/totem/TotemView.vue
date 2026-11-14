@@ -1,5 +1,5 @@
 <template>
-  <div class="totem-container">
+  <div class="totem-container" :class="{ 'modo-cadeirante': a11y.estado.cadeirante }">
     <!-- Top Header do Totem -->
     <header class="totem-topbar">
       <button
@@ -21,7 +21,7 @@
     </header>
 
     <!-- 1. TELA DE DESCANSO / BOAS-VINDAS -->
-    <main v-if="screen === 'welcome'" class="welcome-screen">
+    <main v-if="screen === 'welcome'" class="welcome-screen" @click="iniciarSessao">
       <div class="hero-image-card">
         <img
           src="/assets/capim-dourado-hero.webp"
@@ -60,7 +60,7 @@
       </ul>
 
       <div class="welcome-cta-area">
-        <button type="button" class="btn-gold btn-totem-hero" @click="irParaVitrine()">
+        <button type="button" class="btn-gold btn-totem-hero" @click.stop="iniciarSessao">
           <AppIcon name="touch" :size="22" />
           Toque para explorar
         </button>
@@ -68,12 +68,16 @@
           <AppIcon name="shield-check" :size="14" />
           Sem baixar aplicativo. Sem cadastro para explorar.
         </p>
+        <button type="button" class="chip welcome-a11y-btn" @click.stop="painelA11y = true">
+          <AppIcon name="accessibility" :size="16" />
+          Acessibilidade
+        </button>
       </div>
     </main>
 
     <!-- DEMAIS TELAS DO TOTEM -->
     <template v-else>
-      <nav class="totem-tabs" aria-label="Seções do totem">
+      <nav v-if="!a11y.estado.cadeirante" class="totem-tabs" aria-label="Seções do totem">
         <button
           v-for="tab in tabs"
           :key="tab.id"
@@ -97,7 +101,12 @@
       <!-- 2. INÍCIO / VITRINE -->
       <main v-if="screen === 'vitrine'" class="totem-content">
         <SextaAviso />
-        <form class="search-field totem-search" role="search" @submit.prevent="buscarTexto(termoInicio)">
+        <form
+          v-if="!a11y.estado.cadeirante"
+          class="search-field totem-search"
+          role="search"
+          @submit.prevent="buscarTexto(termoInicio)"
+        >
           <AppIcon name="search" :size="20" />
           <input
             v-model="termoInicio"
@@ -189,7 +198,7 @@
       <!-- 3. RESULTADOS DA BUSCA (filtragem real) -->
       <main v-else-if="screen === 'busca'" class="totem-content">
         <SextaAviso />
-        <div class="search-field totem-search">
+        <div v-if="!a11y.estado.cadeirante" class="search-field totem-search">
           <AppIcon name="search" :size="20" />
           <input
             v-model="search.filtros.q"
@@ -214,6 +223,7 @@
         </div>
 
         <SearchFilters
+          v-if="!a11y.estado.cadeirante"
           :filtros="search.filtros"
           :contagem="search.contagem.value"
           :categorias="categorias"
@@ -494,8 +504,10 @@
         <QrCodeModal
           :totem-id="totemId"
           :search-query="search.filtros.q || ''"
-          :produto="selectedProduct"
+          :produto="produtoParaCelular"
           :loja="selectedStore || selectedProduct?.loja"
+          :a11y="a11y.parametro.value"
+          :leitura-voz="a11y.estado.leituraVoz"
           @close="screen = 'map'"
         />
       </main>
@@ -565,6 +577,7 @@
           :loja-id="lojaPerfilId"
           :totem-id="totemId"
           :origem-nome="totemInfo.identificacao"
+          :acessivel="a11y.estado.rotaAcessivel"
           :back-label="voltarDoPerfil === 'lojas' ? 'Todas as lojas' : 'Voltar'"
           @back="screen = voltarDoPerfil"
           @select="abrirDetalhe"
@@ -628,19 +641,121 @@
         @fechar="mostrarCupom = false"
       />
 
+      <!-- A1: Modo cadeirante — busca, filtros e abas na parte de baixo da tela -->
+      <section v-if="a11y.estado.cadeirante" class="dock-cadeirante" aria-label="Controles ao alcance da mão">
+        <div class="dock-linha">
+          <button v-if="voltarPara" type="button" class="btn-cream btn-sm dock-voltar" @click="screen = voltarPara">
+            <AppIcon name="arrow-left" :size="16" />
+            Voltar
+          </button>
+          <form
+            v-if="screen === 'vitrine'"
+            class="search-field dock-search"
+            role="search"
+            @submit.prevent="buscarTexto(termoInicio)"
+          >
+            <AppIcon name="search" :size="20" />
+            <input v-model="termoInicio" type="search" aria-label="Buscar produtos, lojas ou ocasiões" placeholder="O que você procura?" />
+            <button type="submit" class="btn-gold btn-sm">Buscar</button>
+          </form>
+          <div v-else-if="screen === 'busca'" class="search-field dock-search">
+            <AppIcon name="search" :size="20" />
+            <input v-model="search.filtros.q" type="search" aria-label="Buscar produtos, lojas ou ocasiões" placeholder="O que você procura?" />
+            <button
+              v-if="search.filtros.q"
+              type="button"
+              class="icon-btn"
+              aria-label="Limpar texto da busca"
+              @click="search.filtros.q = ''"
+            >
+              <AppIcon name="x" :size="18" />
+            </button>
+          </div>
+          <span v-else class="dock-titulo">{{ tituloTela }}</span>
+          <button
+            type="button"
+            class="btn-cream btn-sm dock-a11y"
+            aria-label="Acessibilidade"
+            @click="painelA11y = true"
+          >
+            <AppIcon name="accessibility" :size="20" />
+          </button>
+        </div>
+
+        <div v-if="screen === 'busca'" class="dock-filtros">
+          <div class="dock-promo" role="group" aria-label="Filtrar por promoção">
+            <button
+              v-for="op in PROMO_DOCK"
+              :key="op.valor"
+              type="button"
+              class="chip"
+              :class="{ active: search.filtros.promocao === op.valor }"
+              :aria-pressed="search.filtros.promocao === op.valor"
+              @click="search.filtros.promocao = op.valor"
+            >
+              {{ op.label }}
+              <span class="chip-meta num">{{ search.contagem.value[op.valor] }}</span>
+            </button>
+            <button
+              type="button"
+              class="chip"
+              :aria-expanded="dockFiltrosAbertos"
+              aria-controls="dock-mais-filtros"
+              @click="dockFiltrosAbertos = !dockFiltrosAbertos"
+            >
+              <AppIcon name="filter" :size="14" />
+              {{ dockFiltrosAbertos ? 'Fechar filtros' : 'Mais filtros' }}
+            </button>
+          </div>
+          <div v-if="dockFiltrosAbertos" id="dock-mais-filtros" class="dock-mais-filtros">
+            <SearchFilters
+              :filtros="search.filtros"
+              :contagem="search.contagem.value"
+              :categorias="categorias"
+              compact
+              @change="(patch) => Object.assign(search.filtros, patch)"
+            />
+          </div>
+        </div>
+
+        <nav class="totem-tabs dock-tabs" aria-label="Seções do totem">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            type="button"
+            class="totem-tab"
+            :class="{ active: tab.isActive() }"
+            :aria-current="tab.isActive() ? 'page' : undefined"
+            @click="tab.action()"
+          >
+            <AppIcon :name="tab.icon" :size="20" />
+            {{ tab.label }}
+          </button>
+        </nav>
+      </section>
+
       <footer class="totem-footer">
         <span>Palmas, TO · Mapa e ofertas demonstrativas</span>
-        <button type="button" class="chip" @click="screen = 'ajuda'">
-          <AppIcon name="help-circle" :size="15" />
-          Precisa de ajuda?
-        </button>
+        <div class="footer-acoes">
+          <button type="button" class="chip footer-a11y" @click="painelA11y = true">
+            <AppIcon name="accessibility" :size="16" />
+            Acessibilidade
+          </button>
+          <button type="button" class="chip" @click="screen = 'ajuda'">
+            <AppIcon name="help-circle" :size="15" />
+            Precisa de ajuda?
+          </button>
+        </div>
       </footer>
     </template>
+
+    <PainelAcessibilidade v-if="painelA11y" contexto="totem" @fechar="fecharPainelA11y" />
+    <ConviteVoz v-if="mostrarConvite" @aceitar="aceitarLeituraVoz" @recusar="recusarLeituraVoz" />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, formatCurrency, mensagemErroApi } from '@/services/api'
 import { useProductSearch } from '@/composables/useProductSearch'
@@ -657,6 +772,11 @@ import BlackCat from '@/components/sexta13/BlackCat.vue'
 import CouponModal from '@/components/sexta13/CouponModal.vue'
 import SextaAviso from '@/components/sexta13/SextaAviso.vue'
 import { useSexta13 } from '@/composables/useSexta13'
+import PainelAcessibilidade from '@/components/a11y/PainelAcessibilidade.vue'
+import ConviteVoz from '@/components/a11y/ConviteVoz.vue'
+import { useAcessibilidade } from '@/composables/useAcessibilidade'
+import { falar, pararFala, suportaFala } from '@/composables/useVoz'
+import { precoFalado, textoDaRota, textoDetalheProduto, textoListaProdutos, textoProduto } from '@/utils/leitura'
 
 const route = useRoute()
 const totemId = computed(() => Number(route.params.totemId || 1))
@@ -675,13 +795,29 @@ const totemInfo = ref({
 
 const search = useProductSearch({ totemId })
 
+// Acessibilidade (painel, modo cadeirante, rota acessível, alto contraste, fonte e leitura por voz)
+const a11y = useAcessibilidade('totem')
+a11y.aplicarNoDocumento()
+const painelA11y = ref(false)
+const mostrarConvite = ref(false)
+const dockFiltrosAbertos = ref(false)
+
+const PROMO_DOCK = [
+  { valor: 'todas', label: 'Todos' },
+  { valor: 'com', label: 'Com desconto' },
+  { valor: 'sem', label: 'Sem desconto' }
+]
+
 // Easter egg sexta-feira 13
 const sexta13 = useSexta13()
 const mostrarCupom = ref(false)
 
 function onLogoClick() {
   // O 1º toque volta ao início; 13 toques seguidos ligam/desligam o modo sexta-feira 13
-  if (sexta13.registrarToqueLogo() === 1) screen.value = 'welcome'
+  if (sexta13.registrarToqueLogo() === 1) {
+    pararFala()
+    screen.value = 'welcome'
+  }
 }
 
 const lojas = ref([])
@@ -815,6 +951,38 @@ function irParaVitrine() {
   termoInicio.value = ''
 }
 
+// Primeiro toque na tela de descanso: pergunta (em voz) se a pessoa quer a leitura por voz
+function iniciarSessao() {
+  if (mostrarConvite.value || painelA11y.value) return
+  if (a11y.estado.leituraVoz || !suportaFala) {
+    irParaVitrine()
+    return
+  }
+  mostrarConvite.value = true
+}
+
+function aceitarLeituraVoz() {
+  mostrarConvite.value = false
+  a11y.estado.leituraVoz = true
+  pularLeituraDaTela = true
+  irParaVitrine()
+  falar(
+    'Modo leitura por voz ativado. Você pode desligar no botão Acessibilidade, no rodapé da tela. ' +
+      textoDaVitrine()
+  )
+}
+
+function recusarLeituraVoz() {
+  mostrarConvite.value = false
+  irParaVitrine()
+}
+
+function fecharPainelA11y() {
+  painelA11y.value = false
+  // Ao ligar a leitura pelo painel, já lê a tela atual
+  if (a11y.estado.leituraVoz && screen.value !== 'welcome') lerTela(screen.value, false)
+}
+
 function buscarTexto(texto) {
   search.aplicar({ q: texto || '' })
   screen.value = 'busca'
@@ -861,12 +1029,17 @@ async function abrirRotaProduto(prod) {
 
 async function abrirRotaLoja(loja) {
   selectedStore.value = loja
+  await carregarRota()
+  screen.value = 'map'
+}
+
+async function carregarRota() {
+  if (!selectedStore.value) return
   try {
-    currentRoute.value = await api.obterRota(totemId.value, loja.id)
+    currentRoute.value = await api.obterRota(totemId.value, selectedStore.value.id, a11y.estado.rotaAcessivel)
   } catch {
     currentRoute.value = null
   }
-  screen.value = 'map'
 }
 
 function levarLojaNoCelular() {
@@ -885,12 +1058,166 @@ watch(screen, () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 })
 
+// No QR Code/NFC, o produto só vai junto se for da loja da rota escolhida
+const produtoParaCelular = computed(() => {
+  const prod = selectedProduct.value
+  if (!prod) return null
+  return !selectedStore.value || prod.loja_id === selectedStore.value.id ? prod : null
+})
+
+// Botão "Voltar" do dock do modo cadeirante
+const voltarPara = computed(
+  () =>
+    ({
+      compare: 'busca',
+      detail: voltarDoDetalhe.value,
+      loja: voltarDoPerfil.value,
+      qr: 'map'
+    })[screen.value] || ''
+)
+
+const TITULOS_TELA = {
+  compare: 'Comparar ofertas',
+  detail: 'Detalhes do produto',
+  map: 'Mapa e rota',
+  qr: 'Levar no celular',
+  lojas: 'Lojas',
+  loja: 'Perfil da loja',
+  ajuda: 'Ajuda'
+}
+const tituloTela = computed(() => TITULOS_TELA[screen.value] || '')
+
+// Rota acessível ligada/desligada: refaz a rota na hora
+watch(
+  () => a11y.estado.rotaAcessivel,
+  () => {
+    if (screen.value === 'map') carregarRota()
+  }
+)
+
+// Sai do modo cadeirante: fecha os filtros do dock
+watch(
+  () => a11y.estado.cadeirante,
+  (ativo) => {
+    if (!ativo) dockFiltrosAbertos.value = false
+  }
+)
+
+/* ---------------- Leitura por voz ---------------- */
+let pularLeituraDaTela = false
+let timerLeitura = null
+
+function ler(texto, interromper = true) {
+  if (a11y.estado.leituraVoz && texto) falar(texto, { interromper })
+}
+
+function lerDepois(fn, ms) {
+  clearTimeout(timerLeitura)
+  timerLeitura = setTimeout(fn, ms)
+}
+
+function textoDaVitrine() {
+  const ofertas = destaques.value
+    .slice(0, 3)
+    .map((p, i) => `${i + 1}: ${textoProduto(p, { curto: true })}`)
+    .join(' ')
+  return (
+    `Tela inicial. Maiores descontos agora: ${ofertas} ` +
+    'Para buscar, use o campo de busca. Para ver todas as ofertas, toque em Ofertas.'
+  )
+}
+
+function textoDaTela(tela) {
+  switch (tela) {
+    case 'vitrine':
+      return textoDaVitrine()
+    case 'compare':
+      return (
+        'Comparação dos menores preços. ' +
+        produtosComparacao.value.map((p, i) => `${i + 1}: ${textoProduto(p, { curto: true })}`).join(' ')
+      )
+    case 'detail':
+      return textoDetalheProduto(selectedProduct.value)
+    case 'map':
+      return currentRoute.value
+        ? `${textoDaRota(currentRoute.value)} Para levar a rota no celular, toque em Levar rota no celular.`
+        : 'Mapa do shopping. Escolha a loja de destino.'
+    case 'lojas':
+      return `Lojas do shopping: ${lojasFiltradas.value.length} lojas. Toque em uma loja para ver o perfil e a localização.`
+    case 'loja': {
+      const loja = lojas.value.find((l) => l.id === lojaPerfilId.value)
+      if (!loja) return 'Perfil da loja.'
+      const menor = loja.menor_preco ? ` Produtos a partir de ${precoFalado(loja.menor_preco)}.` : ''
+      return (
+        `Perfil da loja ${loja.nome}, ${loja.pavimento}, ${loja.localizacao}. ` +
+        `${loja.total_produtos} produtos, ${loja.total_promocoes} em promoção.${menor} ` +
+        'Para ir até a loja, toque em Como chegar.'
+      )
+    }
+    case 'ajuda':
+      return (
+        'Como funciona o TemAqui. Passo 1: encontre, buscando por produto, loja, orçamento ou ocasião. ' +
+        'Passo 2: filtre e compare preços. Passo 3: conheça a loja. ' +
+        'Passo 4: vá até a loja seguindo o mapa, ou leve a rota no celular.'
+      )
+    default:
+      return ''
+  }
+}
+
+function lerResultados() {
+  if (screen.value !== 'busca') return
+  ler(textoListaProdutos(search.resultados.value, { titulo: tituloBusca.value.titulo }))
+}
+
+function lerTela(tela, interromper = true) {
+  if (!a11y.estado.leituraVoz) return
+  if (tela === 'busca') {
+    // Espera a busca terminar para ler os resultados atualizados
+    lerDepois(() => {
+      if (!search.carregando.value) lerResultados()
+    }, 900)
+    return
+  }
+  // O próprio QR Code / NFC fala o aviso; o mapa espera a rota carregar
+  if (tela === 'qr') return
+  lerDepois(() => ler(textoDaTela(tela), interromper), tela === 'map' ? 400 : 150)
+}
+
+watch(screen, async (tela) => {
+  if (tela === 'welcome') return
+  if (pularLeituraDaTela) {
+    pularLeituraDaTela = false
+    return
+  }
+  await nextTick()
+  lerTela(tela)
+})
+
+// Novos resultados de busca (texto, filtros ou promoção)
+watch(
+  () => search.resultados.value,
+  () => {
+    if (screen.value === 'busca' && a11y.estado.leituraVoz) lerDepois(lerResultados, 400)
+  }
+)
+
+// Troca de loja ou de tipo de rota no mapa: lê a nova rota
+watch(currentRoute, () => {
+  if (screen.value === 'map' && a11y.estado.leituraVoz) lerDepois(() => ler(textoDaTela('map')), 300)
+})
+
 watch(totemId, () => {
   carregarDadosTotem()
 })
 
 onMounted(() => {
   carregarDadosTotem()
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(timerLeitura)
+  pararFala()
 })
 </script>
 
@@ -1730,5 +2057,156 @@ onMounted(() => {
   justify-content: space-between;
   font-size: 12px;
   color: var(--color-graphite-muted);
+}
+
+/* ================= Acessibilidade ================= */
+
+/* B2: fonte A+/A++ amplia o conteúdo (o mapa amplia só controles e instruções) */
+.totem-content > :not(.mappedin-wrapper) {
+  zoom: var(--a11y-zoom, 1);
+}
+
+:root[data-fonte] .totem-tab {
+  font-size: 15px;
+}
+
+:root[data-fonte='2'] .totem-tab {
+  font-size: 16px;
+}
+
+/* Fonte ampliada: colunas que encolhem sem vazar; com A++, menos colunas */
+:root[data-fonte] .products-grid-3,
+:root[data-fonte] .compare-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:root[data-fonte] .category-icons-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+:root[data-fonte='2'] .products-grid-3,
+:root[data-fonte='2'] .compare-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:root[data-fonte='2'] .category-icons-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:root[data-fonte='2'] .stores-grid-2 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.welcome-a11y-btn {
+  margin-top: 4px;
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.footer-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-a11y {
+  font-weight: 600;
+  border-color: var(--color-graphite);
+}
+
+/* A1: Modo cadeirante — dock fixo na parte de baixo com busca, filtros e abas */
+.dock-cadeirante {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 0;
+  background: var(--color-white);
+  border-top: 2px solid var(--color-border-strong);
+  box-shadow: 0 -10px 28px rgba(41, 41, 41, 0.14);
+}
+
+.dock-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dock-search {
+  flex: 1;
+  min-height: 56px;
+}
+
+.dock-search input {
+  font-size: 16px;
+}
+
+.dock-titulo {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  padding-left: 4px;
+}
+
+.dock-voltar {
+  flex-shrink: 0;
+  min-height: 56px;
+}
+
+.dock-a11y {
+  width: 56px;
+  min-height: 56px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.dock-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dock-promo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dock-promo .chip {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.dock-mais-filtros {
+  max-height: 38vh;
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.dock-tabs {
+  position: static;
+  margin: 0 -16px;
+  border-bottom: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.dock-tabs .totem-tab {
+  padding: 14px 4px 16px;
+  border-bottom: none;
+  border-top: 3px solid transparent;
+  margin: -1px 0 0;
+  font-size: 14px;
+}
+
+.dock-tabs .totem-tab.active {
+  border-top-color: var(--color-gold);
 }
 </style>
