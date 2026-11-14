@@ -15,7 +15,7 @@ A solução conecta a jornada física do consumidor em três pontos de contato s
 
 [![YouTube](https://img.shields.io/badge/-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/XRJW_cn96EI)
 
-> Clique na imagem acima para assistir à demonstração completa do **TemAqui** no YouTube.
+> Clique na imagem acima para assistir à apresentação completa do **TemAqui** no YouTube.
 ## 🌐 Links de Demonstração Online (Deploy no Render)
 
 Você pode testar todas as interfaces diretamente no navegador pelos links oficiais em produção:
