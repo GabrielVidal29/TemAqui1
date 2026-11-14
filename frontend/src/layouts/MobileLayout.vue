@@ -1,8 +1,8 @@
 <template>
-  <div class="mobile-stage">
+  <div class="mobile-stage" :class="{ standalone }">
     <div class="mobile-shell">
       <!-- Barra de status simulada do iPhone (moldura do protótipo) -->
-      <div class="mobile-statusbar" aria-hidden="true">
+      <div v-if="!standalone" class="mobile-statusbar" aria-hidden="true">
         <span>9:41</span>
         <div class="status-icons">
           <AppIcon name="signal" :size="14" :stroke-width="2.4" />
@@ -14,7 +14,7 @@
       <!-- Header TemAqui + Capim Dourado -->
       <header class="mobile-header">
         <router-link
-          to="/"
+          :to="standalone ? '/celular' : '/'"
           class="brand-logo"
           aria-label="TemAqui, página inicial"
           @click="sexta13.registrarToqueLogo()"
@@ -37,7 +37,13 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useSexta13 } from '@/composables/useSexta13'
+
+// /celular (aberto pelo QR Code): só o app mobile, em tela cheia, sem a moldura de demonstração
+const route = useRoute()
+const standalone = computed(() => !!route.meta.standalone)
 
 // Easter egg: 13 toques seguidos no logo ligam/desligam o modo sexta-feira 13
 const sexta13 = useSexta13()
@@ -106,6 +112,25 @@ const sexta13 = useSexta13()
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Modo celular real (/celular): ocupa a tela inteira, sem moldura */
+.mobile-stage.standalone {
+  min-height: 100dvh;
+  padding: 0;
+  background: var(--color-white);
+}
+
+.mobile-stage.standalone .mobile-shell {
+  max-width: 520px;
+  height: 100dvh;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.mobile-stage.standalone .mobile-header {
+  padding-top: max(12px, env(safe-area-inset-top));
 }
 
 @media (max-width: 480px) {

@@ -568,11 +568,12 @@ async function inicializarMobile(tentativa = 1) {
     // Continuidade vinda do QR Code do Totem (RN10)
     if (route.query.fromTotem && !route.query.cupom) {
       inheritedFromTotem.value = true
+      let produtoDoTotem = null
       if (route.query.produtoId) {
-        const found = dData.find((p) => p.id === Number(route.query.produtoId))
-        if (found) {
-          selectedProduct.value = found
-          selectedStore.value = found.loja
+        produtoDoTotem = dData.find((p) => p.id === Number(route.query.produtoId)) || null
+        if (produtoDoTotem) {
+          selectedProduct.value = produtoDoTotem
+          selectedStore.value = produtoDoTotem.loja
         }
       }
       if (route.query.lojaId) {
@@ -580,7 +581,13 @@ async function inicializarMobile(tentativa = 1) {
         if (foundLoja) selectedStore.value = foundLoja
       }
       search.aplicar({ q: String(route.query.q || '') })
-      activeTab.value = 'ofertas'
+      if (produtoDoTotem) {
+        // A pessoa escolheu um produto no totem: abre direto nele (o "Voltar" leva à busca)
+        voltarDoDetalhe.value = 'ofertas'
+        activeTab.value = 'detalhe'
+      } else {
+        activeTab.value = 'ofertas'
+      }
     } else {
       search.aplicar({})
     }
@@ -1339,7 +1346,7 @@ onMounted(() => {
   border-top: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(8px);
-  padding: 6px 4px 14px;
+  padding: 6px 4px max(14px, env(safe-area-inset-bottom));
   flex-shrink: 0;
 }
 

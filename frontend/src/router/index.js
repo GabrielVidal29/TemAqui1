@@ -19,6 +19,20 @@ const routes = [
     ]
   },
   {
+    // Aberto pelo QR Code do totem: SOMENTE o layout mobile, em tela cheia,
+    // sem a barra de demonstração e sem acesso ao totem/painel do lojista.
+    path: '/celular',
+    component: MobileLayout,
+    meta: { standalone: true },
+    children: [
+      {
+        path: '',
+        name: 'mobile-celular',
+        component: MobileView
+      }
+    ]
+  },
+  {
     path: '/totem',
     redirect: '/totem/1'
   },

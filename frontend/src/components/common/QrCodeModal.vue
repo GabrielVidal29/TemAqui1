@@ -24,10 +24,10 @@
       aria-label="QR Code. No protótipo, toque para simular a leitura no celular"
       @click="abrirNoCelular"
     >
-      <QrGlyph class="qr-svg" />
+      <QrGlyph class="qr-svg" :valor="urlQr" />
       <span class="qr-hint">
         <AppIcon name="touch" :size="14" />
-        Protótipo: toque no código para simular a leitura
+        Aponte a câmera do celular · {{ dominio }}/celular
       </span>
     </button>
 
@@ -51,8 +51,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import QrGlyph from '@/components/common/QrGlyph.vue'
+import { urlCelular, urlPublicaDoSite } from '@/utils/qr'
 
 const props = defineProps({
   totemId: {
@@ -74,7 +74,6 @@ const props = defineProps({
 })
 
 defineEmits(['close'])
-const router = useRouter()
 
 const resumoTitulo = computed(() => {
   if (props.searchQuery) return `Pesquisa “${props.searchQuery}”`
@@ -89,16 +88,21 @@ const resumoDetalhe = computed(() => {
   return `${nomeProd} · Rota até ${nomeLoja} · ${piso}`
 })
 
+// URL que o celular abre ao ler o QR: somente o layout mobile (/celular) + contexto do totem
+const urlQr = computed(() =>
+  urlCelular({
+    fromTotem: props.totemId || 1,
+    q: props.searchQuery,
+    produtoId: props.produto?.id,
+    lojaId: props.loja?.id || props.produto?.loja_id
+  })
+)
+
+const dominio = computed(() => urlPublicaDoSite().replace(/^https?:\/\//, ''))
+
+// Demonstração: abre em outra aba exatamente o que o celular veria
 function abrirNoCelular() {
-  const query = {
-    fromTotem: String(props.totemId || 1),
-    q: props.searchQuery || 'tênis de corrida até R$ 350'
-  }
-  if (props.produto?.id) query.produtoId = String(props.produto.id)
-  if (props.loja?.id || props.produto?.loja_id) {
-    query.lojaId = String(props.loja?.id || props.produto?.loja_id)
-  }
-  router.push({ path: '/', query })
+  window.open(urlQr.value, '_blank', 'noopener')
 }
 </script>
 

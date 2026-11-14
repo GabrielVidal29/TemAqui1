@@ -1,7 +1,7 @@
 <template>
   <div class="app-root">
     <!-- Barra discreta de alternância rápida entre as 3 interfaces do Monorepo -->
-    <nav class="env-switcher-bar" aria-label="Alternar interface de demonstração">
+    <nav v-if="!route.meta.standalone" class="env-switcher-bar" aria-label="Alternar interface de demonstração">
       <span class="env-switcher-title">
         <strong>TemAqui</strong>
         <span>Capim Dourado Shopping · HACKARUN 2026</span>
@@ -28,5 +28,9 @@
 </template>
 
 <script setup>
+import { useRoute } from 'vue-router'
 import SextaToast from '@/components/sexta13/SextaToast.vue'
+
+// Rotas "standalone" (ex.: /celular, aberta pelo QR Code) não mostram a barra de demonstração
+const route = useRoute()
 </script>

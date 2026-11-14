@@ -4,9 +4,11 @@
 set -e
 
 API="${API_BASE_URL:-http://localhost:8000/api}"
+# Endereço do site aberto pelo QR Code no celular (vazio = mesmo domínio do totem)
+SITE="${PUBLIC_SITE_URL:-}"
 
 cat > /usr/share/nginx/html/config.js <<EOF
-window.__TEMAQUI_CONFIG__ = { API_BASE_URL: "${API}" };
+window.__TEMAQUI_CONFIG__ = { API_BASE_URL: "${API}", PUBLIC_SITE_URL: "${SITE}" };
 EOF
 
-echo "TemAqui: API_BASE_URL=${API}"
+echo "TemAqui: API_BASE_URL=${API} PUBLIC_SITE_URL=${SITE:-mesmo dominio}"

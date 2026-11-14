@@ -1,54 +1,78 @@
 <template>
-  <svg class="qr-glyph" :width="size" :height="size" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <rect width="220" height="220" rx="16" fill="#FFFFFF" />
-    <!-- Cantos de leitura padrão QR -->
-    <rect x="20" y="20" width="54" height="54" rx="6" fill="none" stroke="#292929" stroke-width="8" />
-    <rect x="34" y="34" width="26" height="26" rx="3" fill="#292929" />
+  <!-- QR Code real (lido pela câmera do celular) com o selo do TemAqui no centro -->
+  <svg
+    class="qr-glyph"
+    :width="size"
+    :height="size"
+    :viewBox="`0 0 ${total} ${total}`"
+    xmlns="http://www.w3.org/2000/svg"
+    shape-rendering="crispEdges"
+    role="img"
+    :aria-label="`QR Code para abrir no celular: ${valor}`"
+  >
+    <rect :width="total" :height="total" rx="2" fill="#FFFFFF" />
+    <path :d="caminho" fill="#292929" />
 
-    <rect x="146" y="20" width="54" height="54" rx="6" fill="none" stroke="#292929" stroke-width="8" />
-    <rect x="160" y="34" width="26" height="26" rx="3" fill="#292929" />
-
-    <rect x="20" y="146" width="54" height="54" rx="6" fill="none" stroke="#292929" stroke-width="8" />
-    <rect x="34" y="160" width="26" height="26" rx="3" fill="#292929" />
-
-    <!-- Padrão de módulos de dados -->
-    <g fill="#292929">
-      <rect x="88" y="22" width="12" height="12" />
-      <rect x="112" y="22" width="12" height="24" />
-      <rect x="88" y="46" width="24" height="12" />
-      <rect x="100" y="70" width="12" height="24" />
-      <rect x="22" y="88" width="24" height="12" />
-      <rect x="58" y="88" width="18" height="12" />
-      <rect x="128" y="88" width="12" height="24" />
-      <rect x="152" y="88" width="24" height="12" />
-      <rect x="184" y="100" width="14" height="24" />
-      <rect x="24" y="114" width="14" height="18" />
-      <rect x="52" y="116" width="24" height="12" />
-      <rect x="88" y="136" width="14" height="14" />
-      <rect x="114" y="128" width="24" height="14" />
-      <rect x="148" y="132" width="14" height="26" />
-      <rect x="174" y="142" width="24" height="14" />
-      <rect x="90" y="164" width="26" height="12" />
-      <rect x="126" y="162" width="14" height="28" />
-      <rect x="152" y="174" width="24" height="12" />
-      <rect x="184" y="170" width="14" height="26" />
-    </g>
-    <!-- Selo central: pin TemAqui ou gato (cupom) -->
-    <rect x="88" y="96" width="30" height="30" rx="8" :fill="centro === 'gato' ? '#1A1A1A' : '#C9A34A'" />
-    <circle v-if="centro !== 'gato'" cx="103" cy="111" r="5" fill="#FFFFFF" />
-    <g v-else>
-      <path d="M93 104 L95 98 L99 103 M113 104 L111 98 L107 103" fill="#1A1A1A" stroke="#1A1A1A" stroke-width="2" stroke-linejoin="round" />
-      <circle cx="99" cy="111" r="2.4" fill="#C9A34A" />
-      <circle cx="107" cy="111" r="2.4" fill="#C9A34A" />
+    <!-- Selo central: pin TemAqui ou gato (cupom de sexta-feira 13) -->
+    <g :transform="`translate(${selo.x} ${selo.y})`" shape-rendering="geometricPrecision">
+      <rect
+        :x="-0.6"
+        :y="-0.6"
+        :width="selo.lado + 1.2"
+        :height="selo.lado + 1.2"
+        rx="1.4"
+        fill="#FFFFFF"
+      />
+      <rect :width="selo.lado" :height="selo.lado" rx="1.2" :fill="centro === 'gato' ? '#1A1A1A' : '#C9A34A'" />
+      <circle
+        v-if="centro !== 'gato'"
+        :cx="selo.lado / 2"
+        :cy="selo.lado / 2"
+        :r="selo.lado * 0.18"
+        fill="#FFFFFF"
+      />
+      <g v-else :transform="`scale(${selo.lado / 10})`">
+        <path d="M2 4 L2.8 1.6 L4.4 3.4 M8 4 L7.2 1.6 L5.6 3.4" fill="#1A1A1A" stroke="#C9A34A" stroke-width="0.5" stroke-linejoin="round" />
+        <circle cx="3.7" cy="6" r="0.9" fill="#C9A34A" />
+        <circle cx="6.3" cy="6" r="0.9" fill="#C9A34A" />
+      </g>
     </g>
   </svg>
 </template>
 
 <script setup>
-// Desenho do QR Code do protótipo (o toque simula a leitura no celular)
-defineProps({
+import { computed } from 'vue'
+import { matrizQr } from '@/utils/qr'
+
+const props = defineProps({
+  // Texto/URL codificado no QR Code
+  valor: { type: String, required: true },
   size: { type: Number, default: 220 },
   centro: { type: String, default: 'pin' } // 'pin' | 'gato'
+})
+
+const MARGEM = 3 // zona de silêncio (em módulos) exigida pelos leitores
+
+const matriz = computed(() => matrizQr(props.valor))
+const n = computed(() => matriz.value.length)
+const total = computed(() => n.value + MARGEM * 2)
+
+// Um quadrado por módulo escuro, num único <path> (leve para renderizar)
+const caminho = computed(() => {
+  let d = ''
+  matriz.value.forEach((linha, r) => {
+    linha.forEach((escuro, c) => {
+      if (escuro) d += `M${c + MARGEM},${r + MARGEM}h1v1h-1z`
+    })
+  })
+  return d
+})
+
+// Selo ocupa ~17% da largura: bem abaixo do limite da correção de erro Q
+const selo = computed(() => {
+  const lado = Math.max(5, Math.round(n.value * 0.17))
+  const pos = MARGEM + (n.value - lado) / 2
+  return { lado, x: pos, y: pos }
 })
 </script>
 

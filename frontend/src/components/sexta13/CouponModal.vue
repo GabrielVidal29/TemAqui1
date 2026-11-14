@@ -39,7 +39,7 @@
             aria-label="QR Code do cupom. No protótipo, toque para simular a leitura no celular"
             @click="levarNoCelular"
           >
-            <QrGlyph :size="176" centro="gato" />
+            <QrGlyph :size="176" centro="gato" :valor="urlQr" />
             <span class="coupon-qr-hint">
               <AppIcon name="smartphone" :size="14" />
               Aponte a câmera para levar o cupom no celular
@@ -79,10 +79,10 @@
 </template>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import QrGlyph from '@/components/common/QrGlyph.vue'
 import { CUPOM_SEXTA13 } from '@/composables/useSexta13'
+import { urlCelular } from '@/utils/qr'
 
 const props = defineProps({
   modo: { type: String, default: 'totem' }, // 'totem' | 'mobile'
@@ -91,13 +91,15 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['fechar', 'salvar'])
-const router = useRouter()
 const dialogo = ref(null)
 const copiado = ref(false)
 
 // Mesmo fluxo do QR Code do totem: abre o site mobile levando o cupom na URL
+const urlQr = computed(() => urlCelular({ fromTotem: props.totemId || 1, cupom: CUPOM_SEXTA13.codigo }))
+
+// Demonstração: abre em outra aba exatamente o que o celular veria ao ler o QR
 function levarNoCelular() {
-  router.push({ path: '/', query: { fromTotem: String(props.totemId || 1), cupom: CUPOM_SEXTA13.codigo } })
+  window.open(urlQr.value, '_blank', 'noopener')
 }
 
 async function copiar() {
