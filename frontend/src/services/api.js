@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+// Ordem: config do container (public/config.js) → variável do Vite → padrão local
+const API_BASE = (
+  window.__TEMAQUI_CONFIG__?.API_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  'http://localhost:8000/api'
+).replace(/\/$/, '')
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`

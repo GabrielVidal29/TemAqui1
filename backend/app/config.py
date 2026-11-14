@@ -6,6 +6,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{(BASE_DIR / 'temaqui.db').as_posix()}")
+# Provedores como o Render podem entregar a URL no formato antigo "postgres://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 if DATABASE_URL.startswith("sqlite:///./"):
     rel_path = DATABASE_URL.replace("sqlite:///./", "")
     DATABASE_URL = f"sqlite:///{(BASE_DIR / rel_path).as_posix()}"

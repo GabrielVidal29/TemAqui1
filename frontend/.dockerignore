@@ -1,0 +1,4 @@
+# As dependências são instaladas dentro da imagem (npm ci)
+node_modules/
+dist/
+.vite/

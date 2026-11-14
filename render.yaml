@@ -1,0 +1,46 @@
+# Blueprint do Render — equivalente ao docker-compose.yml em produção.
+# No Render: New → Blueprint → selecione este repositório.
+#
+#   temaqui-db   → PostgreSQL gerenciado (no lugar do container "db")
+#   temaqui-api  → backend/Dockerfile (FastAPI)
+#   temaqui-web  → frontend/Dockerfile (build Vue + nginx)
+#
+# Observação: no plano gratuito os serviços "dormem" após ~15 min sem uso
+# (a primeira abertura leva ~50 s) e o PostgreSQL gratuito expira em 30 dias.
+
+databases:
+  - name: temaqui-db
+    plan: free
+    databaseName: temaqui_db
+    user: temaqui
+
+services:
+  - type: web
+    name: temaqui-api
+    runtime: docker
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: temaqui-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      # API pública de vitrine; o painel do lojista usa token Bearer (sem cookies)
+      - key: CORS_ORIGINS
+        value: "*"
+
+  - type: web
+    name: temaqui-web
+    runtime: docker
+    plan: free
+    dockerContext: ./frontend
+    dockerfilePath: ./frontend/Dockerfile
+    envVars:
+      # URL pública da API. Se o Render atribuir outro endereço ao temaqui-api,
+      # atualize este valor no painel (Environment) e reinicie o temaqui-web.
+      - key: API_BASE_URL
+        value: https://temaqui-api.onrender.com/api

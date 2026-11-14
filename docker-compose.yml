@@ -45,9 +45,12 @@ services:
     container_name: temaqui_frontend
     restart: unless-stopped
     environment:
-      VITE_API_BASE_URL: http://localhost:8000/api
+      # Endereço da API visto pelo navegador (gravado em /config.js ao subir o container)
+      API_BASE_URL: http://localhost:8000/api
+      PORT: 8080
     ports:
-      - "5173:5173"
+      # Site em http://localhost:5173 (nginx servindo o build de produção)
+      - "5173:8080"
     depends_on:
       - backend
     networks:

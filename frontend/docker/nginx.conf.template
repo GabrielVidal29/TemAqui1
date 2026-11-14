@@ -1,0 +1,27 @@
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Configuração gerada na inicialização (endereço da API): nunca guardar em cache
+    location = /config.js {
+        add_header Cache-Control "no-store";
+        try_files $uri =404;
+    }
+
+    # Arquivos estáticos (JS/CSS com hash e imagens dos produtos)
+    location /assets/ {
+        add_header Cache-Control "public, max-age=604800";
+        try_files $uri =404;
+    }
+
+    # Vue Router (modo history): /totem, /lojista etc. caem no index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

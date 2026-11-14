@@ -1,0 +1,9 @@
+# Ambiente local e caches não entram na imagem
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+.env
