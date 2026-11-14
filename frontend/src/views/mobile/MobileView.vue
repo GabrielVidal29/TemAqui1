@@ -13,6 +13,13 @@
         </button>
       </div>
 
+      <!-- Aviso quando a API não responde (backend parado, desatualizado ou em outra porta) -->
+      <div v-if="erroApi" class="api-error-banner" role="alert">
+        <AppIcon name="info" :size="18" />
+        <span>{{ erroApi }}</span>
+        <button type="button" class="btn-cream btn-sm" @click="inicializarMobile()">Tentar de novo</button>
+      </div>
+
       <!-- ABA: INÍCIO -->
       <section v-if="activeTab === 'inicio'" class="m-section">
         <div class="m-hero">
@@ -426,7 +433,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { api, formatCurrency } from '@/services/api'
+import { api, formatCurrency, mensagemErroApi } from '@/services/api'
 import { useProductSearch } from '@/composables/useProductSearch'
 import { iconeCategoria } from '@/utils/categorias'
 import { normalizar } from '@/utils/texto'
@@ -445,6 +452,7 @@ const totemOrigemId = ref(1)
 const termoInicio = ref('')
 const mostrarFiltros = ref(false)
 const scrollBody = ref(null)
+const erroApi = ref('')
 
 const search = useProductSearch({ totemId: totemOrigemId })
 
@@ -495,11 +503,19 @@ async function inicializarMobile(tentativa = 1) {
   try {
     if (route.query.fromTotem) totemOrigemId.value = Number(route.query.fromTotem) || 1
 
-    const [lData, cData, dData] = await Promise.all([
+    // Cada bloco carrega de forma independente: uma falha não esvazia a tela inteira
+    const [lRes, cRes, dRes] = await Promise.allSettled([
       api.listarLojas({ totem_id: totemOrigemId.value }),
       api.listarCategorias(),
       api.listarProdutos({ ordenar_por: 'maior_desconto', totem_id: totemOrigemId.value })
     ])
+    const falhas = [lRes, cRes, dRes].filter((r) => r.status === 'rejected')
+    erroApi.value = falhas.length ? mensagemErroApi(falhas[0].reason) : ''
+    if (falhas.length && tentativa < 3) setTimeout(() => inicializarMobile(tentativa + 1), 1500)
+
+    const lData = lRes.status === 'fulfilled' ? lRes.value : lojas.value
+    const cData = cRes.status === 'fulfilled' ? cRes.value : categorias.value
+    const dData = dRes.status === 'fulfilled' ? dRes.value : []
     lojas.value = lData
     categorias.value = cData
     destaques.value = dData.slice(0, 6)
@@ -532,8 +548,6 @@ async function inicializarMobile(tentativa = 1) {
     }
   } catch (err) {
     console.error('Erro ao inicializar Mobile:', err)
-    // Nova tentativa (ex.: API reiniciando)
-    if (tentativa < 3) setTimeout(() => inicializarMobile(tentativa + 1), 1500)
   }
 }
 
@@ -656,6 +670,25 @@ onMounted(() => {
 
 .totem-inherited-banner .icon-btn {
   color: var(--color-success-text);
+}
+
+.api-error-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.api-error-banner span {
+  flex: 1;
+  min-width: 180px;
 }
 
 /* Seções */

@@ -11,11 +11,13 @@ async function request(path, options = {}) {
     let errorDetail = `Erro HTTP ${response.status}`
     try {
       const errData = await response.json()
-      if (errData.detail) errorDetail = errData.detail
+      if (typeof errData.detail === 'string') errorDetail = errData.detail
     } catch {
       // ignore json parse error
     }
-    throw new Error(errorDetail)
+    const erro = new Error(errorDetail)
+    erro.status = response.status
+    throw erro
   }
   return response.json()
 }
@@ -115,6 +117,21 @@ export const api = {
       body: JSON.stringify({ ativo })
     })
   }
+}
+
+export const API_URL = API_BASE
+
+// Mensagem clara para quando o frontend não consegue falar com o backend
+export function mensagemErroApi(err) {
+  const msg = String(err?.message || '')
+  // 404/422 em rotas públicas = backend de uma versão anterior, sem os endpoints novos
+  if (err?.status === 404 || err?.status === 422) {
+    return `A API em ${API_BASE} está desatualizada (endpoint não encontrado). Atualize o backend e reinicie-o.`
+  }
+  if (err instanceof TypeError || msg.includes('fetch')) {
+    return `Não foi possível conectar à API em ${API_BASE}. Verifique se o backend está rodando.`
+  }
+  return `Erro ao carregar dados da API (${msg || 'desconhecido'}).`
 }
 
 export function formatCurrency(value) {

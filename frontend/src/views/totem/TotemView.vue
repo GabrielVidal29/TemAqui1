@@ -88,6 +88,12 @@
         </button>
       </nav>
 
+      <div v-if="erroApi" class="api-error-banner" role="alert">
+        <AppIcon name="info" :size="18" />
+        <span>{{ erroApi }}</span>
+        <button type="button" class="btn-cream btn-sm" @click="carregarDadosTotem()">Tentar de novo</button>
+      </div>
+
       <!-- 2. INÍCIO / VITRINE -->
       <main v-if="screen === 'vitrine'" class="totem-content">
         <form class="search-field totem-search" role="search" @submit.prevent="buscarTexto(termoInicio)">
@@ -619,7 +625,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { api, formatCurrency } from '@/services/api'
+import { api, formatCurrency, mensagemErroApi } from '@/services/api'
 import { useProductSearch } from '@/composables/useProductSearch'
 import { iconeCategoria } from '@/utils/categorias'
 import { normalizar } from '@/utils/texto'
@@ -637,6 +643,7 @@ const totemId = computed(() => Number(route.params.totemId || 1))
 // 'welcome' | 'vitrine' | 'busca' | 'compare' | 'detail' | 'map' | 'qr' | 'lojas' | 'loja' | 'ajuda'
 const screen = ref('welcome')
 const termoInicio = ref('')
+const erroApi = ref('')
 
 const totemInfo = ref({
   id: 1,
@@ -767,7 +774,9 @@ async function carregarDadosTotem(tentativa = 1) {
   }
   selectedStore.value = selectedProduct.value?.loja || lojas.value[0] || null
 
-  const falhou = [tRes, lRes, cRes, dRes].some((r) => r.status === 'rejected')
+  const falha = [tRes, lRes, cRes, dRes].find((r) => r.status === 'rejected')
+  erroApi.value = falha ? mensagemErroApi(falha.reason) : ''
+  const falhou = !!falha
   if (falhou && tentativa < 3) setTimeout(() => carregarDadosTotem(tentativa + 1), 1500)
 }
 
@@ -1082,6 +1091,23 @@ onMounted(() => {
 
 .totem-tab.active .app-icon {
   color: var(--color-gold-deep);
+}
+
+.api-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 28px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.api-error-banner span {
+  flex: 1;
 }
 
 /* CONTEÚDO */
